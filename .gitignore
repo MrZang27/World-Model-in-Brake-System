@@ -1,0 +1,12 @@
+__pycache__/
+*.py[cod]
+slprj/
+
+# Local smoke-test outputs
+data/*_smoke.csv
+models/*_smoke.pt
+results/*_smoke.*
+
+# MATLAB/Simulink local scratch files
+*.asv
+*.m~
