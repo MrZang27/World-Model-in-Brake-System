@@ -1,0 +1,15 @@
+图表文件,核心结论
+01_dataset_inventory.png,项目已经形成机理、时序和 CarSim 三类数据基础。
+02_mechanism_dataset_coverage.png,机理基线数据覆盖速度、压力和附着系数主要范围。
+03_mechanism_pressure_mu_response.png,附着系数越高，进入饱和前可支持的制动减速度越大。
+04_mechanism_sequence_examples.png,时序模型能够看到完整的压力和车辆状态历史。
+05_model_metrics_rmse_summary.png,CarSim-GRU 速度预测精度较高，但加速度预测更具挑战。
+06_recurrent_ablation_rmse_params.png,GRU S5 H64 L1 参数少，并在关键加速度误差上表现最好。
+07_recurrent_tradeoff_scatter.png,对本任务而言，更大的循环网络不一定更好。
+08_carsim_coverage_heatmap.png,完整 CarSim 数据覆盖每个速度和附着组合。
+09_carsim_peak_decel_by_mu.png,CarSim 峰值减速度呈现符合预期的附着限制分层。
+10_carsim_matrix_smoke.png,低附着和高附着边界工况产生了清晰且有效的制动响应。
+11_carsim_smoke_trajectory.png,联合仿真能够响应压力输入，并返回有效车辆信号。
+12_carsim_pressure_profile_examples.png,CarSim 数据包含多样制动压力指令，而不是单一恒定压力。
+13_carsim_gru_metrics.png,速度预测依然很强，加速度预测体现了高保真数据的真实难度。
+14_mpc_stop_result.png,采样式规划器能够在距离目标安全距离 0.156 m 的范围内安全停车。

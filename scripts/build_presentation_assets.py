@@ -1,4 +1,4 @@
-"""Build presentation-ready charts and tables for the brake world-model project."""
+"""为制动系统世界模型项目生成可直接放入PPT的中文图表和表格。"""
 
 from __future__ import annotations
 
@@ -7,6 +7,9 @@ import json
 import math
 from pathlib import Path
 
+import matplotlib
+
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -33,10 +36,15 @@ def setup_style() -> None:
         {
             "font.family": "sans-serif",
             "font.sans-serif": [
-                "Aptos",
-                "Segoe UI",
                 "Microsoft YaHei",
                 "SimHei",
+                "DengXian",
+                "Microsoft JhengHei",
+                "SimSun",
+                "Noto Sans CJK SC",
+                "Source Han Sans SC",
+                "Aptos",
+                "Segoe UI",
                 "DejaVu Sans",
                 "Arial",
             ],
@@ -107,26 +115,26 @@ def write_markdown_table(df: pd.DataFrame, path: Path) -> None:
 
 def chart_dataset_inventory(root: Path, out: Path) -> dict:
     rows = [
-        ("Mechanism one-step", count_rows(root / "data" / "brake_dataset.csv")),
-        ("Mechanism sequence", count_rows(root / "data" / "brake_sequence_dataset.csv")),
-        ("CarSim raw transitions", count_rows(root / "data" / "carsim_brake_sequence_dataset.csv")),
-        ("CarSim training rows", count_rows(root / "data" / "carsim_brake_sequence_training.csv")),
-        ("CarSim matrix smoke", count_rows(root / "data" / "carsim_matrix_smoke.csv")),
+        ("机理单步数据", count_rows(root / "data" / "brake_dataset.csv")),
+        ("机理时序数据", count_rows(root / "data" / "brake_sequence_dataset.csv")),
+        ("CarSim 原始转移", count_rows(root / "data" / "carsim_brake_sequence_dataset.csv")),
+        ("CarSim 训练数据", count_rows(root / "data" / "carsim_brake_sequence_training.csv")),
+        ("CarSim 矩阵冒烟", count_rows(root / "data" / "carsim_matrix_smoke.csv")),
     ]
-    df = pd.DataFrame(rows, columns=["dataset", "rows"])
+    df = pd.DataFrame(rows, columns=["数据集", "行数"])
     fig, ax = plt.subplots(figsize=(8.6, 4.8))
-    add_header(fig, "Dataset scale across the pipeline", "Rows available for baseline, sequence, CarSim, and validation workflows.")
+    add_header(fig, "全流程数据规模", "机理基线、时序建模、CarSim联合仿真和验证流程中的可用数据行数。")
     colors = [BLUE["mid"], BLUE["base"], ORANGE["mid"], ORANGE["base"], OLIVE["base"]]
-    bars = ax.barh(df["dataset"], df["rows"], color=colors, edgecolor=TOKENS["ink"], linewidth=0.8)
+    bars = ax.barh(df["数据集"], df["行数"], color=colors, edgecolor=TOKENS["ink"], linewidth=0.8)
     ax.invert_yaxis()
     ax.grid(axis="x", color=TOKENS["grid"], linewidth=0.8)
-    ax.set_xlabel("Rows")
+    ax.set_xlabel("行数")
     ax.set_ylabel("")
-    for bar, value in zip(bars, df["rows"]):
-        ax.text(value + max(df["rows"]) * 0.015, bar.get_y() + bar.get_height() / 2, f"{value:,}", va="center", fontsize=9)
+    for bar, value in zip(bars, df["行数"]):
+        ax.text(value + max(df["行数"]) * 0.015, bar.get_y() + bar.get_height() / 2, f"{value:,}", va="center", fontsize=9)
     finish(fig, out / "01_dataset_inventory.png")
     write_markdown_table(df, out / "tables" / "dataset_inventory.md")
-    return {"file": "01_dataset_inventory.png", "takeaway": "The project now contains mechanism, sequence, and CarSim datasets."}
+    return {"file": "01_dataset_inventory.png", "takeaway": "项目已经形成机理、时序和 CarSim 三类数据基础。"}
 
 
 def chart_mechanism_coverage(root: Path, out: Path) -> dict:
@@ -134,21 +142,21 @@ def chart_mechanism_coverage(root: Path, out: Path) -> dict:
     if df.empty:
         return {}
     columns = [
-        ("v_mps", "Speed (m/s)", BLUE["mid"]),
-        ("pressure_MPa", "Pressure (MPa)", ORANGE["mid"]),
-        ("mu", "Road adhesion", OLIVE["mid"]),
+        ("v_mps", "速度 (m/s)", BLUE["mid"]),
+        ("pressure_MPa", "压力 (MPa)", ORANGE["mid"]),
+        ("mu", "路面附着系数", OLIVE["mid"]),
     ]
     fig, axes = plt.subplots(1, 3, figsize=(11, 4.6))
-    add_header(fig, "Mechanism dataset coverage", "Distributions of speed, brake pressure, and road adhesion in the one-step baseline data.")
+    add_header(fig, "机理数据集覆盖范围", "单步基线数据中速度、制动压力和路面附着系数的分布。")
     for ax, (col, label, color) in zip(axes, columns):
         if col not in df:
             continue
         ax.hist(df[col].dropna(), bins=28, color=color, edgecolor=TOKENS["ink"], alpha=0.9)
         ax.set_title(label, fontsize=11)
         ax.grid(axis="y", color=TOKENS["grid"])
-        ax.set_ylabel("Samples")
+        ax.set_ylabel("样本数")
     finish(fig, out / "02_mechanism_dataset_coverage.png")
-    return {"file": "02_mechanism_dataset_coverage.png", "takeaway": "The baseline data covers speed, pressure, and adhesion broadly."}
+    return {"file": "02_mechanism_dataset_coverage.png", "takeaway": "机理基线数据覆盖速度、压力和附着系数主要范围。"}
 
 
 def chart_mechanism_response(root: Path, out: Path) -> dict:
@@ -169,18 +177,18 @@ def chart_mechanism_response(root: Path, out: Path) -> dict:
     )
     grouped["pressure_mid"] = grouped["pressure_bin"].apply(lambda interval: interval.mid).astype(float)
     fig, ax = plt.subplots(figsize=(8.8, 5))
-    add_header(fig, "Mechanism braking response by road adhesion", "Mean next-step acceleration by pressure bin; curves saturate at the adhesion limit.")
+    add_header(fig, "不同路面附着下的机理制动响应", "按压力区间统计下一时刻平均加速度；曲线在附着极限处进入饱和。")
     palette = {0.2: BLUE["mid"], 0.4: OLIVE["mid"], 0.6: GOLD["mid"], 0.8: ORANGE["mid"]}
     for mu, part in grouped.groupby(mu_col):
         color = palette.get(round(float(mu), 1), TOKENS["muted"])
-        ax.plot(part["pressure_mid"], part[accel_col], marker="o", linewidth=2, label=f"mu={mu:g}", color=color)
+        ax.plot(part["pressure_mid"], part[accel_col], marker="o", linewidth=2, label=f"μ={mu:g}", color=color)
     ax.axhline(0, color=TOKENS["axis"], linewidth=1)
-    ax.set_xlabel("Pressure (MPa)")
-    ax.set_ylabel("Mean a_next (m/s^2)")
+    ax.set_xlabel("压力 (MPa)")
+    ax.set_ylabel("平均 a_next (m/s²)")
     ax.grid(color=TOKENS["grid"])
     ax.legend(frameon=False, ncol=2)
     finish(fig, out / "03_mechanism_pressure_mu_response.png")
-    return {"file": "03_mechanism_pressure_mu_response.png", "takeaway": "Higher adhesion supports stronger deceleration before saturation."}
+    return {"file": "03_mechanism_pressure_mu_response.png", "takeaway": "附着系数越高，进入饱和前可支持的制动减速度越大。"}
 
 
 def chart_sequence_examples(root: Path, out: Path) -> dict:
@@ -192,21 +200,21 @@ def chart_sequence_examples(root: Path, out: Path) -> dict:
         return {}
     sample_ids = list(df[traj_col].drop_duplicates().head(4))
     fig, axes = plt.subplots(3, 1, figsize=(9.5, 7.6), sharex=True)
-    add_header(fig, "Mechanism sequence examples", "Representative trajectories used for recurrent world-model training.")
+    add_header(fig, "机理时序轨迹示例", "用于循环世界模型训练的代表性连续制动轨迹。")
     colors = [BLUE["mid"], ORANGE["mid"], OLIVE["mid"], PINK["mid"]]
-    fields = [("v_mps", "Speed (m/s)"), ("a_mps2", "Acceleration (m/s^2)"), ("pressure_MPa", "Pressure (MPa)")]
+    fields = [("v_mps", "速度 (m/s)"), ("a_mps2", "加速度 (m/s²)"), ("pressure_MPa", "压力 (MPa)")]
     for ax, (field, ylabel) in zip(axes, fields):
         for idx, tid in enumerate(sample_ids):
             part = df[df[traj_col] == tid]
             x = part["time_s"] if "time_s" in part else part["step"]
             if field in part:
-                ax.plot(x, part[field], color=colors[idx], linewidth=1.8, label=f"traj {tid}" if field == "v_mps" else None)
+                ax.plot(x, part[field], color=colors[idx], linewidth=1.8, label=f"轨迹 {tid}" if field == "v_mps" else None)
         ax.set_ylabel(ylabel)
         ax.grid(color=TOKENS["grid"])
-    axes[-1].set_xlabel("Time (s)")
+    axes[-1].set_xlabel("时间 (s)")
     axes[0].legend(frameon=False, ncol=4, loc="upper right")
     finish(fig, out / "04_mechanism_sequence_examples.png")
-    return {"file": "04_mechanism_sequence_examples.png", "takeaway": "The recurrent model sees full pressure and vehicle-state histories."}
+    return {"file": "04_mechanism_sequence_examples.png", "takeaway": "时序模型能够看到完整的压力和车辆状态历史。"}
 
 
 def chart_metrics_tables(root: Path, out: Path) -> dict:
@@ -216,20 +224,21 @@ def chart_metrics_tables(root: Path, out: Path) -> dict:
     rows = []
     if not world.empty:
         for _, row in world.iterrows():
-            rows.append(["MLP mechanism", row.get("output", ""), row.get("rmse", np.nan), row.get("mae", np.nan), row.get("r2", np.nan)])
+            rows.append(["MLP 机理数据", row.get("output", ""), row.get("rmse", np.nan), row.get("mae", np.nan), row.get("r2", np.nan)])
     if not seq.empty:
         for _, row in seq.iterrows():
-            rows.append(["Sequence mechanism", row.get("output", ""), row.get("rmse", np.nan), row.get("mae", np.nan), row.get("r2", np.nan)])
+            rows.append(["时序机理数据", row.get("output", ""), row.get("rmse", np.nan), row.get("mae", np.nan), row.get("r2", np.nan)])
     if not carsim.empty:
         for _, row in carsim.iterrows():
-            rows.append(["GRU CarSim", row.get("output", ""), row.get("rmse", np.nan), row.get("mae", np.nan), row.get("r2", np.nan)])
-    df = pd.DataFrame(rows, columns=["model_data", "output", "rmse", "mae", "r2"])
+            rows.append(["GRU CarSim 数据", row.get("output", ""), row.get("rmse", np.nan), row.get("mae", np.nan), row.get("r2", np.nan)])
+    df = pd.DataFrame(rows, columns=["模型与数据源", "输出量", "RMSE", "MAE", "R2"])
     if df.empty:
         return {}
+    df["输出量"] = df["输出量"].replace({"v_next_mps": "下一时刻速度", "a_next_mps2": "下一时刻加速度"})
     write_markdown_table(df, out / "tables" / "model_metrics_summary.md")
     fig, ax = plt.subplots(figsize=(8.8, 4.8))
-    add_header(fig, "Model validation RMSE summary", "Mechanism models are easier; CarSim acceleration is the hardest target.")
-    pivot = df.pivot_table(index="model_data", columns="output", values="rmse", aggfunc="first")
+    add_header(fig, "模型验证 RMSE 总览", "机理数据更容易拟合；CarSim 加速度是当前最困难的预测目标。")
+    pivot = df.pivot_table(index="模型与数据源", columns="输出量", values="RMSE", aggfunc="first")
     labels = list(pivot.index)
     outputs = list(pivot.columns)
     x = np.arange(len(labels))
@@ -244,7 +253,7 @@ def chart_metrics_tables(root: Path, out: Path) -> dict:
     ax.grid(axis="y", color=TOKENS["grid"])
     ax.legend(frameon=False, loc="upper left")
     finish(fig, out / "05_model_metrics_rmse_summary.png")
-    return {"file": "05_model_metrics_rmse_summary.png", "takeaway": "CarSim-GRU keeps high speed accuracy but acceleration is more challenging."}
+    return {"file": "05_model_metrics_rmse_summary.png", "takeaway": "CarSim-GRU 速度预测精度较高，但加速度预测更具挑战。"}
 
 
 def chart_recurrent_ablation(root: Path, out: Path) -> dict:
@@ -257,11 +266,11 @@ def chart_recurrent_ablation(root: Path, out: Path) -> dict:
     colors = [OLIVE["mid"] if row["experiment"] == "gru_s5_h64_l1" else (BLUE["base"] if row["recurrent"] == "gru" else ORANGE["base"]) for _, row in df.iterrows()]
     y = np.arange(len(df))
     fig, axes = plt.subplots(1, 3, figsize=(12, 6.4), sharey=True)
-    add_header(fig, "LSTM vs GRU ablation", "Trajectory-level split, 40 epochs, PINN weight 0.05; highlighted row is the recommended model.")
+    add_header(fig, "LSTM 与 GRU 消融实验", "轨迹级划分，训练 40 轮，PINN 权重 0.05；高亮行为推荐模型。")
     for ax, field, title, unit in [
-        (axes[0], "v_rmse", "Speed RMSE", "m/s"),
-        (axes[1], "a_rmse", "Accel RMSE", "m/s^2"),
-        (axes[2], "params_k", "Parameters", "k"),
+        (axes[0], "v_rmse", "速度 RMSE", "m/s"),
+        (axes[1], "a_rmse", "加速度 RMSE", "m/s²"),
+        (axes[2], "params_k", "参数量", "千参数"),
     ]:
         values = df[field].values
         ax.barh(y, values, color=colors, edgecolor=TOKENS["ink"], linewidth=0.7)
@@ -277,8 +286,22 @@ def chart_recurrent_ablation(root: Path, out: Path) -> dict:
     for ax in axes[1:]:
         ax.tick_params(axis="y", labelleft=False)
     finish(fig, out / "06_recurrent_ablation_rmse_params.png")
-    write_markdown_table(df[["experiment", "recurrent", "sequence_len", "hidden_size", "num_layers", "parameter_count", "v_rmse", "a_rmse", "v_r2", "a_r2"]], out / "tables" / "recurrent_ablation.md")
-    return {"file": "06_recurrent_ablation_rmse_params.png", "takeaway": "GRU S5 H64 L1 is compact and wins the key acceleration metric."}
+    table_df = df[["experiment", "recurrent", "sequence_len", "hidden_size", "num_layers", "parameter_count", "v_rmse", "a_rmse", "v_r2", "a_r2"]].rename(
+        columns={
+            "experiment": "实验名",
+            "recurrent": "循环单元",
+            "sequence_len": "序列长度",
+            "hidden_size": "隐藏层维度",
+            "num_layers": "层数",
+            "parameter_count": "参数量",
+            "v_rmse": "速度RMSE",
+            "a_rmse": "加速度RMSE",
+            "v_r2": "速度R2",
+            "a_r2": "加速度R2",
+        }
+    )
+    write_markdown_table(table_df, out / "tables" / "recurrent_ablation.md")
+    return {"file": "06_recurrent_ablation_rmse_params.png", "takeaway": "GRU S5 H64 L1 参数少，并在关键加速度误差上表现最好。"}
 
 
 def chart_ablation_tradeoff(root: Path, out: Path) -> dict:
@@ -286,18 +309,18 @@ def chart_ablation_tradeoff(root: Path, out: Path) -> dict:
     if df.empty:
         return {}
     fig, ax = plt.subplots(figsize=(8.6, 5.2))
-    add_header(fig, "Model-size vs acceleration-error tradeoff", "The selected GRU sits near the best accuracy region with far fewer parameters.")
+    add_header(fig, "模型规模与加速度误差权衡", "推荐 GRU 用更少参数取得接近最优的加速度预测表现。")
     for recurrent, part in df.groupby("recurrent"):
         color = BLUE["mid"] if recurrent == "gru" else ORANGE["mid"]
         ax.scatter(part["parameter_count"] / 1000, part["a_rmse"], s=110, color=color, edgecolor=TOKENS["ink"], label=recurrent.upper(), alpha=0.9)
         for _, row in part.iterrows():
             ax.text(row["parameter_count"] / 1000 + 3, row["a_rmse"], f"S{int(row['sequence_len'])} H{int(row['hidden_size'])} L{int(row['num_layers'])}", fontsize=7.5, va="center")
-    ax.set_xlabel("Parameters (k)")
-    ax.set_ylabel("Acceleration RMSE (m/s^2)")
+    ax.set_xlabel("参数量 (千)")
+    ax.set_ylabel("加速度 RMSE (m/s²)")
     ax.grid(color=TOKENS["grid"])
     ax.legend(frameon=False)
     finish(fig, out / "07_recurrent_tradeoff_scatter.png")
-    return {"file": "07_recurrent_tradeoff_scatter.png", "takeaway": "Bigger recurrent networks are not automatically better for this task."}
+    return {"file": "07_recurrent_tradeoff_scatter.png", "takeaway": "对本任务而言，更大的循环网络不一定更好。"}
 
 
 def chart_carsim_run_matrix(root: Path, out: Path) -> dict:
@@ -306,18 +329,18 @@ def chart_carsim_run_matrix(root: Path, out: Path) -> dict:
         return {}
     pivot = df.groupby(["mu", "initial_speed_kph"])["row_count"].sum().unstack("initial_speed_kph").sort_index()
     fig, ax = plt.subplots(figsize=(8.6, 5))
-    add_header(fig, "CarSim dataset coverage matrix", "Rows collected by speed and road adhesion across 120 trajectories.")
+    add_header(fig, "CarSim 数据覆盖矩阵", "120 条轨迹在不同初速度和路面附着系数组合下采集到的数据行数。")
     im = ax.imshow(pivot.values, aspect="auto", cmap="YlGnBu")
     ax.set_xticks(np.arange(pivot.shape[1]), [f"{int(v)}" for v in pivot.columns])
     ax.set_yticks(np.arange(pivot.shape[0]), [f"{v:.1f}" for v in pivot.index])
-    ax.set_xlabel("Initial speed (km/h)")
-    ax.set_ylabel("mu")
+    ax.set_xlabel("初速度 (km/h)")
+    ax.set_ylabel("附着系数 μ")
     for i in range(pivot.shape[0]):
         for j in range(pivot.shape[1]):
             ax.text(j, i, f"{int(pivot.values[i, j])}", ha="center", va="center", fontsize=9, color=TOKENS["ink"])
-    fig.colorbar(im, ax=ax, fraction=0.035, pad=0.02, label="Rows")
+    fig.colorbar(im, ax=ax, fraction=0.035, pad=0.02, label="行数")
     finish(fig, out / "08_carsim_coverage_heatmap.png")
-    return {"file": "08_carsim_coverage_heatmap.png", "takeaway": "Every speed/adhesion condition is represented in the full CarSim dataset."}
+    return {"file": "08_carsim_coverage_heatmap.png", "takeaway": "完整 CarSim 数据覆盖每个速度和附着组合。"}
 
 
 def chart_carsim_decel_by_mu(root: Path, out: Path) -> dict:
@@ -326,18 +349,18 @@ def chart_carsim_decel_by_mu(root: Path, out: Path) -> dict:
         return {}
     grouped = df.groupby(["mu", "initial_speed_kph"])["minimum_acceleration_mps2"].apply(lambda s: abs(s).mean()).reset_index()
     fig, ax = plt.subplots(figsize=(8.8, 5.2))
-    add_header(fig, "CarSim peak deceleration follows road adhesion", "Average absolute minimum acceleration across pressure trajectories.")
+    add_header(fig, "CarSim 峰值减速度随路面附着分层", "按压力轨迹统计的平均绝对最小加速度。")
     palette = {0.2: BLUE["mid"], 0.4: OLIVE["mid"], 0.6: GOLD["mid"], 0.8: ORANGE["mid"]}
     for mu, part in grouped.groupby("mu"):
         color = palette.get(round(float(mu), 1), TOKENS["muted"])
-        ax.plot(part["initial_speed_kph"], part["minimum_acceleration_mps2"], marker="o", linewidth=2.4, color=color, label=f"mu={mu:g}")
+        ax.plot(part["initial_speed_kph"], part["minimum_acceleration_mps2"], marker="o", linewidth=2.4, color=color, label=f"μ={mu:g}")
         ax.axhline(float(mu) * 9.81, color=color, linewidth=1, alpha=0.18)
-    ax.set_xlabel("Initial speed (km/h)")
-    ax.set_ylabel("|Minimum acceleration| (m/s^2)")
+    ax.set_xlabel("初速度 (km/h)")
+    ax.set_ylabel("|最小加速度| (m/s²)")
     ax.grid(color=TOKENS["grid"])
     ax.legend(frameon=False, ncol=2)
     finish(fig, out / "09_carsim_peak_decel_by_mu.png")
-    return {"file": "09_carsim_peak_decel_by_mu.png", "takeaway": "CarSim produces the expected adhesion-limited deceleration layers."}
+    return {"file": "09_carsim_peak_decel_by_mu.png", "takeaway": "CarSim 峰值减速度呈现符合预期的附着限制分层。"}
 
 
 def chart_carsim_matrix_smoke(root: Path, out: Path) -> dict:
@@ -345,17 +368,49 @@ def chart_carsim_matrix_smoke(root: Path, out: Path) -> dict:
     if df.empty:
         return {}
     df = df.copy()
-    df["case"] = df.apply(lambda r: f"{int(r['initial_speed_kph'])} km/h\nmu={r['mu']:.1f}", axis=1)
+    df["case"] = df.apply(lambda r: f"{int(r['initial_speed_kph'])} km/h\nμ={r['mu']:.1f}", axis=1)
     fig, ax = plt.subplots(figsize=(8.8, 5))
-    add_header(fig, "CarSim boundary smoke-test response", "Six representative cases confirm speed matching and braking response.")
+    add_header(fig, "CarSim 边界工况冒烟测试响应", "6 个代表性工况验证初速度匹配和制动响应。")
     bars = ax.bar(df["case"], abs(df["minimum_acceleration_mps2"]), color=[BLUE["mid"] if mu == 0.2 else ORANGE["mid"] for mu in df["mu"]], edgecolor=TOKENS["ink"], linewidth=0.8)
-    ax.set_ylabel("|Minimum acceleration| (m/s^2)")
+    ax.set_ylabel("|最小加速度| (m/s²)")
     ax.grid(axis="y", color=TOKENS["grid"])
     for bar, valid in zip(bars, df["valid"]):
-        ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.15, "PASS" if bool(valid) else "FAIL", ha="center", fontsize=8)
+        ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.15, "通过" if bool(valid) else "失败", ha="center", fontsize=8)
     finish(fig, out / "10_carsim_matrix_smoke.png")
-    write_markdown_table(df, out / "tables" / "carsim_matrix_smoke.md")
-    return {"file": "10_carsim_matrix_smoke.png", "takeaway": "Low-mu and high-mu boundary cases produce distinct, valid braking responses."}
+    table_df = df.rename(columns={
+        "case_id": "工况编号",
+        "initial_speed_kph": "初速度(km/h)",
+        "mu": "附着系数",
+        "observed_initial_speed_kph": "实测初速度(km/h)",
+        "observed_final_speed_kph": "末速度(km/h)",
+        "minimum_acceleration_mps2": "最小加速度(m/s²)",
+        "maximum_pressure_mpa": "最大压力(MPa)",
+        "row_count": "样本行数",
+        "speed_error_kph": "速度误差(km/h)",
+        "speed_match": "速度匹配",
+        "braking_response": "制动响应",
+        "valid": "是否有效",
+        "case": "工况标签",
+    })
+    bool_columns = ["速度匹配", "制动响应", "是否有效"]
+    for column in bool_columns:
+        if column in table_df:
+            table_df[column] = table_df[column].map(lambda value: "是" if bool(value) else "否")
+    preferred_columns = [
+        "工况编号",
+        "初速度(km/h)",
+        "附着系数",
+        "末速度(km/h)",
+        "最小加速度(m/s²)",
+        "最大压力(MPa)",
+        "样本行数",
+        "速度匹配",
+        "制动响应",
+        "是否有效",
+    ]
+    table_df = table_df[[column for column in preferred_columns if column in table_df]]
+    write_markdown_table(table_df, out / "tables" / "carsim_matrix_smoke.md")
+    return {"file": "10_carsim_matrix_smoke.png", "takeaway": "低附着和高附着边界工况产生了清晰且有效的制动响应。"}
 
 
 def chart_carsim_smoke_trajectory(root: Path, out: Path) -> dict:
@@ -363,11 +418,11 @@ def chart_carsim_smoke_trajectory(root: Path, out: Path) -> dict:
     if df.empty:
         return {}
     fig, axes = plt.subplots(3, 1, figsize=(9, 7.2), sharex=True)
-    add_header(fig, "CarSim single-case smoke trajectory", "80 km/h, mu=0.85, pressure command 2 MPa, simulated for 2.5 s.")
+    add_header(fig, "CarSim 单工况冒烟测试轨迹", "80 km/h，μ=0.85，压力指令 2 MPa，仿真 2.5 s。")
     columns = [
-        ("speed_kph", "Speed (km/h)", BLUE["mid"]),
-        ("acceleration_mps2", "Acceleration (m/s^2)", ORANGE["mid"]),
-        ("pressure_mpa", "Pressure (MPa)", OLIVE["mid"]),
+        ("speed_kph", "速度 (km/h)", BLUE["mid"]),
+        ("acceleration_mps2", "加速度 (m/s²)", ORANGE["mid"]),
+        ("pressure_mpa", "压力 (MPa)", OLIVE["mid"]),
     ]
     time_col = "time_s" if "time_s" in df else df.columns[0]
     for ax, (field, ylabel, color) in zip(axes, columns):
@@ -379,9 +434,9 @@ def chart_carsim_smoke_trajectory(root: Path, out: Path) -> dict:
         ax.plot(df[time_col], df[field], color=color, linewidth=2)
         ax.set_ylabel(ylabel)
         ax.grid(color=TOKENS["grid"])
-    axes[-1].set_xlabel("Time (s)")
+    axes[-1].set_xlabel("时间 (s)")
     finish(fig, out / "11_carsim_smoke_trajectory.png")
-    return {"file": "11_carsim_smoke_trajectory.png", "takeaway": "The co-simulation responds to pressure input and returns finite vehicle signals."}
+    return {"file": "11_carsim_smoke_trajectory.png", "takeaway": "联合仿真能够响应压力输入，并返回有效车辆信号。"}
 
 
 def chart_carsim_pressure_examples(root: Path, out: Path) -> dict:
@@ -391,21 +446,21 @@ def chart_carsim_pressure_examples(root: Path, out: Path) -> dict:
     group_cols = ["trajectory_id"]
     sample_ids = list(df["trajectory_id"].drop_duplicates().head(8))
     fig, axes = plt.subplots(2, 1, figsize=(9.2, 6.4), sharex=True)
-    add_header(fig, "CarSim pressure-profile examples", "A subset of random and smooth pressure trajectories used for high-fidelity data collection.")
+    add_header(fig, "CarSim 压力轨迹示例", "高保真数据采集中使用的部分随机和平滑压力曲线。")
     palette = [BLUE["mid"], ORANGE["mid"], OLIVE["mid"], PINK["mid"], GOLD["mid"], BLUE["dark"], ORANGE["dark"], OLIVE["dark"]]
     for idx, tid in enumerate(sample_ids):
         part = df[df["trajectory_id"] == tid]
         x = part["time_s"] if "time_s" in part else part["step"]
-        axes[0].plot(x, part["pressure_MPa"], color=palette[idx % len(palette)], linewidth=1.7, label=f"traj {tid}")
+        axes[0].plot(x, part["pressure_MPa"], color=palette[idx % len(palette)], linewidth=1.7, label=f"轨迹 {tid}")
         axes[1].plot(x, part["v_mps"] * 3.6, color=palette[idx % len(palette)], linewidth=1.7)
-    axes[0].set_ylabel("Pressure (MPa)")
-    axes[1].set_ylabel("Speed (km/h)")
-    axes[1].set_xlabel("Time (s)")
+    axes[0].set_ylabel("压力 (MPa)")
+    axes[1].set_ylabel("速度 (km/h)")
+    axes[1].set_xlabel("时间 (s)")
     for ax in axes:
         ax.grid(color=TOKENS["grid"])
     axes[0].legend(frameon=False, ncol=4, fontsize=8)
     finish(fig, out / "12_carsim_pressure_profile_examples.png")
-    return {"file": "12_carsim_pressure_profile_examples.png", "takeaway": "The CarSim data includes varied braking commands rather than one fixed pressure."}
+    return {"file": "12_carsim_pressure_profile_examples.png", "takeaway": "CarSim 数据包含多样制动压力指令，而不是单一恒定压力。"}
 
 
 def chart_carsim_gru_metrics(root: Path, out: Path) -> dict:
@@ -414,20 +469,22 @@ def chart_carsim_gru_metrics(root: Path, out: Path) -> dict:
     if metrics.empty:
         return {}
     fig, axes = plt.subplots(1, 2, figsize=(9.2, 4.8))
-    add_header(fig, "CarSim-GRU validation metrics", "S=5, H=64, one GRU layer, PINN weight 0.05; trajectory-level split.")
-    x = np.arange(len(metrics))
-    axes[0].bar(metrics["output"], metrics["rmse"], color=[BLUE["mid"], ORANGE["mid"]], edgecolor=TOKENS["ink"], linewidth=0.8)
+    add_header(fig, "CarSim-GRU 验证指标", "序列长度 5，隐藏层 64，单层 GRU，PINN 权重 0.05；按轨迹划分训练与验证。")
+    output_labels = metrics["output"].replace({"v_next_mps": "下一时刻速度", "a_next_mps2": "下一时刻加速度"})
+    axes[0].bar(output_labels, metrics["rmse"], color=[BLUE["mid"], ORANGE["mid"]], edgecolor=TOKENS["ink"], linewidth=0.8)
     axes[0].set_ylabel("RMSE")
     axes[0].grid(axis="y", color=TOKENS["grid"])
-    axes[1].bar(metrics["output"], metrics["r2"], color=[BLUE["base"], ORANGE["base"]], edgecolor=TOKENS["ink"], linewidth=0.8)
-    axes[1].set_ylabel("R^2")
+    axes[1].bar(output_labels, metrics["r2"], color=[BLUE["base"], ORANGE["base"]], edgecolor=TOKENS["ink"], linewidth=0.8)
+    axes[1].set_ylabel("R²")
     axes[1].set_ylim(0, 1.05)
     axes[1].grid(axis="y", color=TOKENS["grid"])
-    subtitle = f"parameters={summary.get('parameter_count', 'n/a')}, train={summary.get('train_samples', 'n/a')}, val={summary.get('val_samples', 'n/a')}"
+    subtitle = f"参数量={summary.get('parameter_count', 'n/a')}，训练样本={summary.get('train_samples', 'n/a')}，验证样本={summary.get('val_samples', 'n/a')}"
     fig.text(0.06, 0.06, subtitle, fontsize=9, color=TOKENS["muted"])
     finish(fig, out / "13_carsim_gru_metrics.png")
-    write_markdown_table(metrics, out / "tables" / "carsim_gru_metrics.md")
-    return {"file": "13_carsim_gru_metrics.png", "takeaway": "Speed prediction remains very strong; acceleration is the honest hard target."}
+    metrics_table = metrics.rename(columns={"output": "输出量", "mse": "MSE", "rmse": "RMSE", "mae": "MAE", "r2": "R2"})
+    metrics_table["输出量"] = metrics_table["输出量"].replace({"v_next_mps": "下一时刻速度", "a_next_mps2": "下一时刻加速度"})
+    write_markdown_table(metrics_table, out / "tables" / "carsim_gru_metrics.md")
+    return {"file": "13_carsim_gru_metrics.png", "takeaway": "速度预测依然很强，加速度预测体现了高保真数据的真实难度。"}
 
 
 def chart_mpc_stop(root: Path, out: Path) -> dict:
@@ -442,13 +499,13 @@ def chart_mpc_stop(root: Path, out: Path) -> dict:
     if "pressure_MPa" not in df.columns and "P_MPa" in df.columns:
         df["pressure_MPa"] = df["P_MPa"]
     fig, axes = plt.subplots(4, 1, figsize=(9.5, 8.8), sharex=True)
-    add_header(fig, "Sampled MPC closed-loop stopping result", "80 km/h, x0=65 m, mu=0.6, target safe distance=2 m; execution uses the mechanism environment.")
+    add_header(fig, "采样式 MPC 闭环刹停结果", "80 km/h，x0=65 m，μ=0.6，目标安全距离=2 m；当前执行环境为机理模型。")
     time_col = "time_s" if "time_s" in df else df.columns[0]
     plots = [
-        ("distance_m", "Distance (m)", BLUE["mid"]),
-        ("speed_kph", "Speed (km/h)", BLUE["dark"]),
-        ("acceleration_mps2", "Acceleration (m/s^2)", ORANGE["mid"]),
-        ("pressure_MPa", "Pressure (MPa)", OLIVE["mid"]),
+        ("distance_m", "距离 (m)", BLUE["mid"]),
+        ("speed_kph", "速度 (km/h)", BLUE["dark"]),
+        ("acceleration_mps2", "加速度 (m/s²)", ORANGE["mid"]),
+        ("pressure_MPa", "压力 (MPa)", OLIVE["mid"]),
     ]
     for ax, (field, ylabel, color) in zip(axes, plots):
         if field not in df:
@@ -458,19 +515,20 @@ def chart_mpc_stop(root: Path, out: Path) -> dict:
             field = candidates[0]
         ax.plot(df[time_col], df[field], color=color, linewidth=2)
         if "distance" in field:
-            ax.axhline(2.0, color=ORANGE["dark"], linestyle="--", linewidth=1.4, label="safe distance")
+            ax.axhline(2.0, color=ORANGE["dark"], linestyle="--", linewidth=1.4, label="安全距离")
             ax.legend(frameon=False)
         ax.set_ylabel(ylabel)
         ax.grid(color=TOKENS["grid"])
-    axes[-1].set_xlabel("Time (s)")
+    axes[-1].set_xlabel("时间 (s)")
     finish(fig, out / "14_mpc_stop_result.png")
-    return {"file": "14_mpc_stop_result.png", "takeaway": "The sampled planner stops safely within 0.156 m of the target distance."}
+    return {"file": "14_mpc_stop_result.png", "takeaway": "采样式规划器能够在距离目标安全距离 0.156 m 的范围内安全停车。"}
 
 
 def write_asset_manifest(asset_records: list[dict], out: Path) -> None:
     df = pd.DataFrame(asset_records)
     if df.empty:
         return
+    df = df.rename(columns={"chart": "图表文件", "takeaway": "核心结论"})
     write_markdown_table(df, out / "tables" / "asset_manifest.md")
     (out / "asset_manifest.csv").write_text(df.to_csv(index=False), encoding="utf-8")
 
@@ -507,9 +565,9 @@ def main() -> None:
     for builder in builders:
         result = builder(root, out)
         if result:
-            records.append({"chart": result["file"], "takeaway": result["takeaway"]})
+            records.append({"图表文件": result["file"], "核心结论": result["takeaway"]})
     write_asset_manifest(records, out)
-    print(json.dumps({"out_dir": str(out), "assets": records}, ensure_ascii=False, indent=2))
+    print(json.dumps({"输出目录": str(out), "图表资产": records}, ensure_ascii=False, indent=2))
 
 
 if __name__ == "__main__":

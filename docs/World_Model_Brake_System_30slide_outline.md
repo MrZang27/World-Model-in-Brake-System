@@ -1,525 +1,523 @@
-# World Model Brake System 30-Slide PPT Outline and Speaker Notes
+# 制动系统世界模型 30 页 PPT 大纲与逐页讲稿
 
-This document is a storyboard for a roughly 30-slide final presentation. It is
-designed to be converted into a full PPT deck after the team confirms the
-storyline, chart choices, and speaking scope.
+本文档是期末汇报 PPT 的中文故事板。后续可以直接按照这里的页标题、页面内容、图表引用和备注讲稿制作正式 PPT。
 
-Recommended split:
+建议三人分工：
 
-| Speaker | Slides | Main responsibility |
+| 汇报人 | 页码 | 主要职责 |
 |---|---:|---|
-| A | 1-10 | Problem definition, project pipeline, mechanism baseline, data interface |
-| B | 11-20 | CarSim co-simulation, CarSim dataset, LSTM/GRU ablation, CarSim-GRU |
-| C | 21-30 | MPC planner, closed-loop stop, engineering deliverables, limitations, next steps |
+| 同学 A | 1-10 | 问题定义、总体流程、机理基线、统一数据接口 |
+| 同学 B | 11-20 | CarSim 联合仿真、CarSim 数据集、LSTM/GRU 消融、CarSim-GRU |
+| 同学 C | 21-30 | MPC 规划器、闭环刹停结果、工程交付、限制与下一步 |
 
-Estimated total time: 24-28 minutes, depending on Q&A pace.
+预计总时长：24-28 分钟，具体取决于现场语速和问答节奏。
 
-## Generated Figure and Table Assets
+## 图表与表格资产生成方式
 
-Run the asset generator from the project root:
+在项目根目录运行：
 
 ```powershell
 & "C:\Users\MrZang\anaconda3\condabin\conda.bat" run -n rl_env `
   python scripts/build_presentation_assets.py
 ```
 
-Default output directory:
+默认输出目录：
 
 ```text
 results/presentation_assets/
 ```
 
-Current preview output from this Codex session:
+当前会话中已经预览生成的临时目录：
 
 ```text
 C:\Users\MrZang\AppData\Local\Temp\world_model_presentation_assets
 ```
 
-### New Chart Assets
+### 新增中文图表资产
 
-| Asset | Recommended slide | Takeaway |
+| 图表文件 | 建议页码 | 核心结论 |
 |---|---:|---|
-| `01_dataset_inventory.png` | 4 | The project now has mechanism, sequence, and CarSim datasets. |
-| `02_mechanism_dataset_coverage.png` | 7 | Baseline sampling covers speed, pressure, and adhesion broadly. |
-| `03_mechanism_pressure_mu_response.png` | 8 | Higher adhesion supports stronger deceleration before saturation. |
-| `04_mechanism_sequence_examples.png` | 11 | Recurrent models see pressure and vehicle-state histories. |
-| `05_model_metrics_rmse_summary.png` | 15 / 24 | CarSim acceleration is the hardest prediction target. |
-| `06_recurrent_ablation_rmse_params.png` | 17 | GRU S5 H64 L1 is compact and strong on acceleration RMSE. |
-| `07_recurrent_tradeoff_scatter.png` | 18 | Larger recurrent networks are not automatically better. |
-| `08_carsim_coverage_heatmap.png` | 14 | Every speed/adhesion condition is represented in the full CarSim dataset. |
-| `09_carsim_peak_decel_by_mu.png` | 15 | CarSim produces expected adhesion-limited deceleration layers. |
-| `10_carsim_matrix_smoke.png` | 13 | Boundary smoke tests validate low/high adhesion response. |
-| `11_carsim_smoke_trajectory.png` | 12 | Co-simulation responds to pressure input and returns finite signals. |
-| `12_carsim_pressure_profile_examples.png` | 14 | CarSim data uses varied pressure commands, not one fixed pressure. |
-| `13_carsim_gru_metrics.png` | 20 | Speed prediction remains strong; acceleration is the honest hard target. |
-| `14_mpc_stop_result.png` | 25 | The sampled planner stops safely within 0.156 m of target distance. |
+| `01_dataset_inventory.png` | 4 | 项目已经形成机理、时序和 CarSim 三类数据基础。 |
+| `02_mechanism_dataset_coverage.png` | 7 | 机理基线数据覆盖速度、压力和附着系数主要范围。 |
+| `03_mechanism_pressure_mu_response.png` | 8 | 附着系数越高，可支持的制动减速度越大。 |
+| `04_mechanism_sequence_examples.png` | 11 | 时序模型能够看到压力和车辆状态的连续历史。 |
+| `05_model_metrics_rmse_summary.png` | 15 / 24 | CarSim 加速度预测是当前最困难的目标。 |
+| `06_recurrent_ablation_rmse_params.png` | 17 | GRU S5 H64 L1 参数少，减速度误差表现最好。 |
+| `07_recurrent_tradeoff_scatter.png` | 18 | 更大的循环网络不一定带来更好的工程效果。 |
+| `08_carsim_coverage_heatmap.png` | 14 | 完整 CarSim 数据覆盖每个速度和附着组合。 |
+| `09_carsim_peak_decel_by_mu.png` | 15 | CarSim 峰值减速度呈现清晰附着分层。 |
+| `10_carsim_matrix_smoke.png` | 13 | 边界冒烟测试验证了低附着和高附着响应差异。 |
+| `11_carsim_smoke_trajectory.png` | 12 | 联合仿真能接收压力输入并返回有效车辆信号。 |
+| `12_carsim_pressure_profile_examples.png` | 14 | CarSim 数据包含多样压力曲线，而不是单一恒压。 |
+| `13_carsim_gru_metrics.png` | 20 | 速度预测依然很强，加速度预测反映真实难度。 |
+| `14_mpc_stop_result.png` | 25 | 采样式规划器能在目标安全距离附近停车。 |
 
-### Existing Figure Assets
+### 已有图表资产
 
-| Asset | Recommended slide | Use |
+| 图表文件 | 建议页码 | 用途 |
 |---|---:|---|
-| `results/mu_response.png` | 8 | Road adhesion mechanism response. |
-| `results/prediction_compare.png` | 9 | MLP baseline prediction comparison. |
-| `results/training_loss.png` | 9 | MATLAB MLP training convergence. |
-| `results/sequence_training_loss.png` | 19 | Mechanism sequence GRU/LSTM training convergence. |
-| `results/carsim_gru_training_loss.png` | 19 | CarSim-GRU training convergence. |
-| `results/safety_planning_scenario.png` | 23 | Early one-step safety barrier demonstration. |
-| `results/mpc_stop_scenario.png` | 25 | Existing MPC stopping result plot. |
+| `results/mu_response.png` | 8 | 展示不同路面附着下的机理响应。 |
+| `results/prediction_compare.png` | 9 | 展示 MLP 基线预测与机理标签对比。 |
+| `results/training_loss.png` | 9 | 展示 MATLAB MLP 训练收敛。 |
+| `results/sequence_training_loss.png` | 19 | 展示机理时序模型训练收敛。 |
+| `results/carsim_gru_training_loss.png` | 19 | 展示 CarSim-GRU 训练收敛。 |
+| `results/safety_planning_scenario.png` | 23 | 展示早期一步安全屏障。 |
+| `results/mpc_stop_scenario.png` | 25 | 展示已有 MPC 刹停结果。 |
 
-### Table Assets
+### 表格资产
 
-| Asset | Recommended slide | Use |
+| 表格文件 | 建议页码 | 用途 |
 |---|---:|---|
-| `tables/dataset_inventory.md` | 4 | Dataset row-count scorecard. |
-| `tables/model_metrics_summary.md` | 24 | Model metrics comparison. |
-| `tables/recurrent_ablation.md` | 17 | Full ablation table. |
-| `tables/carsim_matrix_smoke.md` | 13 | Boundary smoke-test table. |
-| `tables/carsim_gru_metrics.md` | 20 | CarSim-GRU RMSE/MAE/R2 table. |
-| `asset_manifest.csv` | Appendix | Figure registry. |
+| `tables/dataset_inventory.md` | 4 | 数据集行数概览。 |
+| `tables/model_metrics_summary.md` | 24 | 模型指标对比。 |
+| `tables/recurrent_ablation.md` | 17 | 完整消融实验结果表。 |
+| `tables/carsim_matrix_smoke.md` | 13 | 边界冒烟测试结果表。 |
+| `tables/carsim_gru_metrics.md` | 20 | CarSim-GRU RMSE、MAE、R2 指标表。 |
+| `asset_manifest.csv` | 附录 | 图表资产登记表。 |
 
-## 30-Slide Storyboard
+## 30 页 PPT 故事板
 
-### Slide 1. Title
+### 第 1 页：标题页
 
-Visual: clean title slide with project name and three-speaker split.
+页面视觉：简洁标题页，突出项目名、三位汇报人和三层关键词。
 
-On-slide bullets:
+页面内容：
 
-- World Model in Brake System
-- Simulink / CarSim co-simulation
-- GRU-PINN sequence model
-- Sampled MPC stopping planner
+- 制动系统世界模型
+- Simulink / CarSim 联合仿真
+- GRU-PINN 时序世界模型
+- 采样式 MPC 刹停规划器
 
-Speaker note:
+备注讲稿：
 
 各位老师、同学好，我们汇报的题目是基于世界模型的一维纵向制动决策规划。这个项目从一个简化的纵向制动机理模型出发，逐步扩展到 CarSim 高保真联合仿真、GRU 时序世界模型和采样式 MPC 规划器。今天我们会重点展示三件事：第一，数据和仿真环境如何建立；第二，为什么从 MLP 升级到 GRU 并做消融实验；第三，世界模型如何进入上层规划闭环，完成一维安全刹停。
 
-### Slide 2. One-Sentence Objective
+### 第 2 页：一句话目标
 
-Visual: objective card plus input/output diagram.
+页面视觉：目标卡片加输入输出示意图。
 
-On-slide bullets:
+页面内容：
 
-- Input: speed, acceleration, pressure, road adhesion, obstacle distance
-- Output: next state prediction and braking action
-- Goal: stop safely, accurately, and smoothly before an obstacle
+- 输入：速度、加速度、制动压力、路面附着、障碍物距离
+- 输出：下一时刻状态预测和当前制动动作
+- 目标：在障碍物前安全、精准、平顺地停车
 
-Speaker note:
+备注讲稿：
 
 我们的问题可以浓缩成一句话：给定车辆当前状态和前方障碍物距离，系统需要在线选择制动主缸压力，让车辆既不碰撞，又尽量停在目标安全距离附近，同时避免过大的减速度。这里世界模型不是单独做预测，而是为规划器提供一个快速、可调用的虚拟动力学环境。
 
-### Slide 3. Why This Is More Than System Identification
+### 第 3 页：为什么不只是系统辨识
 
-Visual: contrast table, "identification" vs "planning by prediction".
+页面视觉：“系统辨识”和“预测式规划”对照表。
 
-On-slide bullets:
+页面内容：
 
-- System identification: learn dynamics only
-- Planning by prediction: use learned dynamics to choose actions
-- The planner repeatedly simulates futures before executing one action
+- 系统辨识：只学习动力学映射
+- 预测式规划：用学习到的动力学选择动作
+- 规划器在执行前反复推演未来候选轨迹
 
-Speaker note:
+备注讲稿：
 
 如果只是训练 MLP 或 GRU 去拟合下一时刻速度，这只能算系统辨识。我们的目标是进一步把预测模型放进规划环节，让控制器在执行前先“脑内推演”多条未来压力曲线，比较风险和代价，再选择当前最合适的压力。这就是从系统辨识走向预测式决策的关键区别。
 
-### Slide 4. Project Data Inventory
+### 第 4 页：项目数据总览
 
-Visual: `01_dataset_inventory.png` plus small scorecard.
+页面视觉：`01_dataset_inventory.png` 加数据规模指标卡。
 
-On-slide bullets:
+页面内容：
 
-- 30,000 mechanism one-step rows
-- 16,000 mechanism sequence rows
-- 13,070 raw CarSim transitions
-- 10,924 CarSim training transitions
+- 机理单步数据：30,000 行
+- 机理时序数据：16,000 行
+- CarSim 原始状态转移：13,070 行
+- CarSim 训练数据：10,924 行
 
-Speaker note:
+备注讲稿：
 
 这张图先说明工程当前的数据规模。我们保留了三万条单步机理数据，用于快速验证 MLP；一万六千行机理时序数据，用于 LSTM 和 GRU；同时已经通过 CarSim/Simulink 联合仿真得到一万三千零七十条高保真状态转移，并进一步清洗出一万零九百二十四条训练数据。也就是说，现在的数据链路已经不只停留在简化模型。
 
-### Slide 5. End-to-End Workflow
+### 第 5 页：端到端工程流程
 
-Visual: workflow diagram.
+页面视觉：四层工作流图。
 
-On-slide bullets:
+页面内容：
 
-- Mechanism model for reproducible baseline
-- CarSim for high-fidelity pseudo-real data
-- GRU/PINN as chassis world model
-- Sampled MPC as upper-level planner
+- 机理模型：可复现基线
+- CarSim：高保真伪真实数据
+- GRU-PINN：底盘世界模型
+- 采样式 MPC：上层决策规划器
 
-Speaker note:
+备注讲稿：
 
 整体流程分成四层。第一层是环境，包括简化机理模型和 CarSim。第二层是数据集，把不同来源统一成相同的输入输出格式。第三层是世界模型，包含 MLP 基线、LSTM/GRU 消融和 PINN 约束。第四层是规划器，它调用世界模型预测未来，再把第一步压力交给物理环境执行。这个结构保证后续替换数据源或模型结构时，不需要重写全部代码。
 
-### Slide 6. Mechanism Baseline Equations
+### 第 6 页：机理基线方程
 
-Visual: formula panel and parameter table.
+页面视觉：公式面板和参数表。
 
-On-slide bullets:
+页面内容：
 
 - `F_brake = k * P`
 - `F_actual = min(F_brake, mu * m * g)`
 - `a_next = -F_actual / m`
 - `v_next = max(v + a_next * dt, 0)`
 
-Speaker note:
+备注讲稿：
 
 机理模型使用一个可解释的纵向制动近似。制动力与主缸压力线性相关，但实际制动力不能超过路面附着上限。之后通过牛顿第二定律计算减速度，再用离散积分更新速度。车辆质量取一千八百千克，采样周期零点零五秒。这个模型虽然简化，但非常适合做基线、单元测试和规划器初始验证。
 
-### Slide 7. Mechanism Dataset Coverage
+### 第 7 页：机理数据覆盖范围
 
-Visual: `02_mechanism_dataset_coverage.png`.
+页面视觉：`02_mechanism_dataset_coverage.png`。
 
-On-slide bullets:
+页面内容：
 
-- Speed coverage: 20-120 km/h equivalent range
-- Pressure coverage: 0-10 MPa
-- Adhesion coverage: 0.2 / 0.4 / 0.6 / 0.8
+- 速度覆盖：约 20-120 km/h
+- 压力覆盖：0-10 MPa
+- 附着覆盖：0.2 / 0.4 / 0.6 / 0.8
 
-Speaker note:
+备注讲稿：
 
 这张图展示机理单步数据的采样覆盖。速度、压力和附着系数都覆盖了制动场景中的主要范围，这保证 MLP 不只是记住少数工况。对于期末汇报来说，这张图能够回答“你们的数据是不是太单一”的问题。我们可以强调，机理数据用于快速闭环，不代表最终真实世界，但它为模型和规划器接口打下了基础。
 
-### Slide 8. Adhesion-Limited Braking Response
+### 第 8 页：路面附着限制下的制动响应
 
-Visual: `03_mechanism_pressure_mu_response.png` or `results/mu_response.png`.
+页面视觉：`03_mechanism_pressure_mu_response.png` 或 `results/mu_response.png`。
 
-On-slide bullets:
+页面内容：
 
-- Higher pressure increases deceleration only before saturation
-- Low road adhesion caps braking earlier
-- This gives the model an interpretable physical prior
+- 压力增加只在未饱和前提升减速度
+- 低附着路面更早达到制动上限
+- 该规律为模型提供可解释物理先验
 
-Speaker note:
+备注讲稿：
 
 这张图体现路面附着限制。压力增加时，减速度不会无限增大，因为实际制动力受到 μmg 的上限约束。低附着路面更早进入饱和，高附着路面可以支持更强制动。这个规律不仅能解释数据，也能帮助我们在后面的 PINN 和规划代价中加入物理口径。
 
-### Slide 9. MLP Baseline Result
+### 第 9 页：MLP 基线预测结果
 
-Visual: `results/prediction_compare.png` plus `results/world_model_metrics.csv` table.
+页面视觉：`results/prediction_compare.png` 加 `results/world_model_metrics.csv` 指标表。
 
-On-slide bullets:
+页面内容：
 
-- One-step dynamics can be accurately learned
-- MLP validates data generation, normalization, and inference
-- Limitation: no explicit history dependence
+- 单步动力学可以被准确学习
+- MLP 验证了数据生成、归一化和推理链路
+- 局限：没有显式历史依赖
 
-Speaker note:
+备注讲稿：
 
 第一版世界模型是 MLP，用来验证单步动力学是否可学习。从预测对比图可以看到，模型输出与机理标签高度重合。这个结果说明数据生成、归一化、训练和推理链路是正确的。但 MLP 的限制也很清楚：它只看当前状态，无法表达压力建立、液压滞后和轮胎状态随时间变化的影响，所以它适合作为基线，不适合作为最终时序底座。
 
-### Slide 10. Unified Dataset Schema
+### 第 10 页：统一数据字段
 
-Visual: table of dataset columns.
+页面视觉：数据字段表。
 
-On-slide bullets:
+页面内容：
 
-- `trajectory_id`, `step`, `time_s`
-- `v_mps`, `a_mps2`, `pressure_MPa`, `mu`
-- `v_next_mps`, `a_next_mps2`
-- Extra CarSim fields are retained but not required
+- `trajectory_id`、`step`、`time_s`
+- `v_mps`、`a_mps2`、`pressure_MPa`、`mu`
+- `v_next_mps`、`a_next_mps2`
+- CarSim 附加字段保留，但训练接口不依赖
 
-Speaker note:
+备注讲稿：
 
 为了让机理模型和 CarSim 数据都能进入同一套训练代码，我们设计了统一数据接口。核心字段包括当前速度、当前加速度、压力、附着系数，以及下一时刻速度和加速度。CarSim 可以额外保留初速度、来源、参考风险等字段，但训练接口只依赖前九个核心字段。这个设计减少了后续工程切换成本。
 
-### Slide 11. Sequence Modeling Data
+### 第 11 页：时序建模数据
 
-Visual: `04_mechanism_sequence_examples.png`.
+页面视觉：`04_mechanism_sequence_examples.png`。
 
-On-slide bullets:
+页面内容：
 
-- Input becomes the latest K steps
-- Default K = 5
-- Features: speed, acceleration, pressure, adhesion
-- Target: next speed and acceleration
+- 输入变为最近 K 个时间步
+- 默认 K = 5
+- 特征：速度、加速度、压力、附着
+- 目标：下一时刻速度和加速度
 
-Speaker note:
+备注讲稿：
 
 从这一页开始进入同学 B 的模型部分。为了建模制动过程的历史依赖，我们把输入从单个点改成最近五个时间步的序列。每一步包含速度、加速度、压力和附着系数。这样模型能看到压力如何逐步建立、速度如何连续下降，而不是只在当前点做静态映射。
 
-### Slide 12. CarSim Co-Simulation Interface
+### 第 12 页：CarSim 联合仿真接口
 
-Visual: block diagram of Simulink pressure input to VehicleSim S-Function.
+页面视觉：Simulink 压力输入到 VehicleSim S-Function 的模块图。
 
-On-slide bullets:
+页面内容：
 
-- Import: `IMP_PBK_L1/L2/R1/R2`
-- Export: `Vx_SM`, `Ax_SM`
-- Same pressure command sent to four wheels
-- `SIMFILE` selects the CarSim Run
+- 输入：`IMP_PBK_L1/L2/R1/R2`
+- 输出：`Vx_SM`、`Ax_SM`
+- 同一个压力指令发送到四个车轮
+- 通过 `SIMFILE` 切换 CarSim Run
 
-Speaker note:
+备注讲稿：
 
 CarSim 联合仿真的关键是 VehicleSim S-Function 接口。我们从 Simulink 输入四个制动压力信号，对应四个车轮；CarSim 输出纵向速度和纵向加速度。当前 CarSim 2019 的运行文件参数名是 `SIMFILE`，因此脚本会把不同工况的 `.sim` 文件切换到同一个联合仿真模型里运行。
 
-### Slide 13. CarSim Smoke Verification
+### 第 13 页：CarSim 单工况冒烟测试
 
-Visual: `11_carsim_smoke_trajectory.png`.
+页面视觉：`11_carsim_smoke_trajectory.png`。
 
-On-slide bullets:
+页面内容：
 
-- 80 km/h, mu = 0.85, pressure = 2 MPa
-- 2.5 s simulation, 2501 samples
-- Final speed: 58.373 km/h
-- Minimum acceleration: -3.238 m/s^2
-- Result: PASS
+- 80 km/h，mu = 0.85，压力 = 2 MPa
+- 仿真 2.5 s，2501 个样本
+- 末速度：58.373 km/h
+- 最小加速度：-3.238 m/s²
+- 结果：PASS
 
-Speaker note:
+备注讲稿：
 
 这一页展示单工况冒烟测试。输入是八十公里每小时、附着系数零点八五、二兆帕制动压力，仿真两点五秒。结果显示速度确实下降，压力信号有效，输出没有 NaN，最小加速度约负三点二三八米每二次方秒。这一步验证的是联合仿真通道本身：压力能进去，车辆响应能出来。
 
-### Slide 14. CarSim Run Matrix Smoke Test
+### 第 14 页：CarSim 工况矩阵冒烟测试
 
-Visual: `10_carsim_matrix_smoke.png` plus table `carsim_matrix_smoke.md`.
+页面视觉：`10_carsim_matrix_smoke.png` 加表格 `carsim_matrix_smoke.md`。
 
-On-slide bullets:
+页面内容：
 
-- 6 representative boundary cases
-- Speeds: 20 / 80 / 120 km/h
-- Road adhesion: 0.2 and 0.8
-- All 6 cases valid
+- 6 个代表性边界工况
+- 速度：20 / 80 / 120 km/h
+- 附着：0.2 和 0.8
+- 6 个工况全部有效
 
-Speaker note:
+备注讲稿：
 
 单工况通过之后，我们进一步检查边界工况矩阵。这里选择低、中、高三个初速度，并在低附着零点二和高附着零点八下各跑一次，总计六个代表性工况。六个工况都通过了初速度匹配、制动响应和有效输出检查。图中可以看到，高附着工况的峰值减速度明显更强，这符合物理预期。
 
-### Slide 15. Full CarSim Dataset Coverage
+### 第 15 页：完整 CarSim 数据覆盖
 
-Visual: `08_carsim_coverage_heatmap.png` and `12_carsim_pressure_profile_examples.png`.
+页面视觉：`08_carsim_coverage_heatmap.png` 和 `12_carsim_pressure_profile_examples.png`。
 
-On-slide bullets:
+页面内容：
 
-- 6 speeds x 4 adhesion levels
-- 5 pressure trajectories per condition
-- 120 total trajectories
-- 13,070 raw transitions
+- 6 档速度 × 4 档附着
+- 每个物理工况 5 条压力轨迹
+- 总计 120 条轨迹
+- 13,070 条原始状态转移
 
-Speaker note:
+备注讲稿：
 
 完整 CarSim 数据集覆盖六档初速度和四档附着系数，每个物理工况下使用五条不同压力轨迹，总计一百二十条轨迹。左侧热力图显示每个速度和附着组合都有数据，右侧压力轨迹说明我们不是只用恒定压力，而是包含变化压力曲线。这样训练出来的模型更接近实际控制中会遇到的输入序列。
 
-### Slide 16. CarSim Physical Response
+### 第 16 页：CarSim 物理响应
 
-Visual: `09_carsim_peak_decel_by_mu.png`.
+页面视觉：`09_carsim_peak_decel_by_mu.png`。
 
-On-slide bullets:
+页面内容：
 
-- mu = 0.2: peak deceleration near 2 m/s^2
-- mu = 0.8: peak deceleration above 7 m/s^2
-- CarSim response follows adhesion-limited layers
+- mu = 0.2：峰值减速度约 2 m/s²
+- mu = 0.8：峰值减速度超过 7 m/s²
+- CarSim 响应符合附着限制分层
 
-Speaker note:
+备注讲稿：
 
 这张图从完整数据集中汇总每个工况的峰值减速度。可以看到不同附着系数形成了非常清晰的分层：零点二低附着接近二米每二次方秒，零点八高附着超过七米每二次方秒。这个结果说明 CarSim 数据不仅能跑通，而且在物理趋势上符合路面附着限制。
 
-### Slide 17. Why GRU Instead of Only LSTM
+### 第 17 页：为什么选择 GRU，而不是只用 LSTM
 
-Visual: compact architecture diagram.
+页面视觉：紧凑网络结构对比图。
 
-On-slide bullets:
+页面内容：
 
-- LSTM: expressive but more parameters
-- GRU: fewer gates, lower inference cost
-- Planner calls the model many times per control step
-- Need accuracy and computational efficiency
+- LSTM：表达能力强，但参数更多
+- GRU：门结构更少，推理成本更低
+- 规划器每个控制步会多次调用模型
+- 需要同时兼顾精度和计算效率
 
-Speaker note:
+备注讲稿：
 
 在规划器里，世界模型不是只调用一次，而是每个控制时刻都要对很多候选压力序列反复滚动预测。因此模型不仅要准，还要轻量。LSTM 表达能力强，但参数更多；GRU 门结构更简洁，通常能用更少参数捕捉短期动态。我们没有凭直觉选择，而是做了统一消融实验。
 
-### Slide 18. LSTM/GRU Ablation Design
+### 第 18 页：LSTM/GRU 消融实验设计
 
-Visual: experiment design table.
+页面视觉：实验配置表。
 
-On-slide bullets:
+页面内容：
 
-- Recurrent type: LSTM vs GRU
-- Sequence length: 5 vs 50
-- Hidden size/layers: 64x1 vs 128x2
-- Same seed, split, epochs, PINN weight
+- 循环单元：LSTM 对比 GRU
+- 序列长度：5 对比 50
+- 结构规模：64×1 对比 128×2
+- 固定随机种子、划分方式、训练轮次、PINN 权重
 
-Speaker note:
+备注讲稿：
 
 消融实验采用科学对比方式。我们固定随机种子、轨迹级划分、四十个训练轮次和物理损失权重，只改变循环单元、序列长度和模型深度。这样得到的差异主要来自结构本身，而不是训练设置变化。这个实验也回应了一个常见问题：是不是模型越深、序列越长就越好。
 
-### Slide 19. Ablation Result
+### 第 19 页：消融实验结果
 
-Visual: `06_recurrent_ablation_rmse_params.png`.
+页面视觉：`06_recurrent_ablation_rmse_params.png`。
 
-On-slide bullets:
+页面内容：
 
-- Recommended: GRU S5 H64 L1
-- Parameters: 17,730
-- v RMSE: 0.0648 m/s
-- a RMSE: 0.0431 m/s^2
+- 推荐配置：GRU S5 H64 L1
+- 参数量：17,730
+- 速度 RMSE：0.0648 m/s
+- 加速度 RMSE：0.0431 m/s²
 
-Speaker note:
+备注讲稿：
 
 结果显示，推荐配置是短序列、单层、六十四隐藏单元的 GRU。它只有一万七千七百三十个参数，但速度 RMSE 达到零点零六四八米每秒，减速度 RMSE 达到零点零四三一米每二次方秒。与同配置 LSTM 相比，它参数更少，减速度误差显著更低，非常适合作为后续 MPC 的预测底座。
 
-### Slide 20. Model Size vs Error Trade-Off
+### 第 20 页：模型规模与误差权衡
 
-Visual: `07_recurrent_tradeoff_scatter.png`.
+页面视觉：`07_recurrent_tradeoff_scatter.png`。
 
-On-slide bullets:
+页面内容：
 
-- Larger model does not guarantee lower error
-- Long sequence helps some speed metrics but hurts acceleration
-- GRU short sequence is the best engineering compromise
+- 更大模型不保证更低误差
+- 长序列对部分速度指标有帮助，但会影响减速度表现
+- 短序列 GRU 是当前最合适的工程折中
 
-Speaker note:
+备注讲稿：
 
 这张散点图进一步说明，模型变大并不自动带来更好的规划价值。长序列深模型在某些速度指标上可能略好，但参数量上升接近一个数量级，而且减速度误差未必同步改善。因为规划器特别依赖减速度预测和实时调用成本，所以我们选择 GRU S5 H64 L1，而不是盲目堆深网络。
 
-### Slide 21. CarSim-GRU Training Setup
+### 第 21 页：CarSim-GRU 训练设置
 
-Visual: training configuration scorecard plus `results/carsim_gru_training_loss.png`.
+页面视觉：训练配置指标卡加 `results/carsim_gru_training_loss.png`。
 
-On-slide bullets:
+页面内容：
 
-- Data source: CarSim
-- GRU S=5, H=64, L=1
-- 96 training trajectories, 24 validation trajectories
-- 40 epochs, CUDA, 17.2 s
+- 数据来源：CarSim
+- GRU S=5，H=64，L=1
+- 训练轨迹 96 条，验证轨迹 24 条
+- 40 epochs，CUDA，17.2 s
 
-Speaker note:
+备注讲稿：
 
 在选定结构后，我们把同一套 GRU-PINN 训练到 CarSim 数据上。训练采用轨迹级划分，而不是随机打散相邻时间点，避免数据泄漏。训练集九十六条轨迹，验证集二十四条轨迹，训练四十轮，GPU 用时约十七点二秒。这说明模型训练成本很低，便于反复调参。
 
-### Slide 22. CarSim-GRU Metrics
+### 第 22 页：CarSim-GRU 验证指标
 
-Visual: `13_carsim_gru_metrics.png` plus `carsim_gru_metrics.md`.
+页面视觉：`13_carsim_gru_metrics.png` 加表格 `carsim_gru_metrics.md`。
 
-On-slide bullets:
+页面内容：
 
-- v_next RMSE: 0.1173 m/s, R2 = 0.99981
-- a_next RMSE: 0.4493 m/s^2, R2 = 0.92929
-- CarSim acceleration is more nonlinear than mechanism data
+- `v_next` RMSE：0.1173 m/s，R² = 0.99981
+- `a_next` RMSE：0.4493 m/s²，R² = 0.92929
+- CarSim 加速度比机理数据更非线性
 
-Speaker note:
+备注讲稿：
 
 CarSim-GRU 在验证集上速度预测仍然非常准确，RMSE 为零点一一七三米每秒，R 方接近一。减速度预测的 RMSE 为零点四四九三米每二次方秒，R 方为零点九二九二九。这个误差比机理数据高是合理的，因为 CarSim 包含更复杂的轮胎非线性、车身俯仰和停车附近动态。我们把它作为真实难度的体现，而不是掩盖掉。
 
-### Slide 23. Mechanism vs CarSim Difficulty
+### 第 23 页：机理数据与 CarSim 数据难度对比
 
-Visual: `05_model_metrics_rmse_summary.png`.
+页面视觉：`05_model_metrics_rmse_summary.png`。
 
-On-slide bullets:
+页面内容：
 
-- Mechanism labels are smoother and easier
-- CarSim speed remains easy to predict
-- CarSim acceleration exposes high-fidelity dynamics
+- 机理标签更平滑，因此更容易拟合
+- CarSim 速度仍然较容易预测
+- CarSim 加速度暴露了高保真动力学难点
 
-Speaker note:
+备注讲稿：
 
 这张图把不同数据源和模型的 RMSE 放在一起比较。简化机理数据更平滑，因此模型误差非常低；CarSim 速度仍然容易预测，但加速度误差明显更高。这个对比有助于解释为什么要引入 CarSim：它让模型面对更真实的物理复杂性，也让评价指标更加诚实。
 
-### Slide 24. Planning Problem Formulation
+### 第 24 页：规划问题建模
 
-Visual: state/action/cost table.
+页面视觉：状态、动作、代价函数表。
 
-On-slide bullets:
+页面内容：
 
-- State: speed, distance, adhesion
-- Action: master-cylinder pressure
-- Horizon: candidate pressure sequence
-- Cost: distance, comfort, smoothness, collision, not-stop penalty
+- 状态：速度、障碍物距离、附着系数
+- 动作：制动主缸压力
+- 预测时域：候选压力序列
+- 代价：距离、舒适度、平滑性、碰撞、未刹停惩罚
 
-Speaker note:
+备注讲稿：
 
 接下来进入同学 C 的规划部分。规划器的状态包括当前速度、障碍物距离和附着系数，动作是主缸压力。每次规划不是只选一个压力点，而是采样一段未来压力序列。代价函数综合终点距离误差、减速度舒适性、压力平滑、碰撞惩罚和未刹停惩罚。
 
-### Slide 25. Sampled MPC Algorithm
+### 第 25 页：采样式 MPC 算法
 
-Visual: four-step loop diagram.
+页面视觉：四步循环图。
 
-On-slide bullets:
+页面内容：
 
-1. Sample pressure sequences
-2. Roll out future trajectory with world model
-3. Score each sequence by cost
-4. Execute only the first pressure
+1. 采样压力序列
+2. 用世界模型滚动预测未来轨迹
+3. 按总代价为每条序列打分
+4. 只执行最优序列的第一步压力
 
-Speaker note:
+备注讲稿：
 
 我们采用的是采样式 MPC，而不是复杂的解析梯度优化。每个控制时刻生成多条平滑压力曲线，世界模型对每条曲线进行未来展开，然后用代价函数排序。选出最优序列后，只执行第一步压力，下一时刻根据反馈重新规划。这个方法直观、可解释，也方便后续升级到 MPPI 或 CEM。
 
-### Slide 26. One-Step Safety Barrier Baseline
+### 第 26 页：一步安全屏障基线
 
-Visual: `results/safety_planning_scenario.png`.
+页面视觉：`results/safety_planning_scenario.png`。
 
-On-slide bullets:
+页面内容：
 
-- Earlier safety layer before full MPC
-- Select pressure from safety constraint
-- Helps debug distance and stopping logic
+- 完整 MPC 之前的早期安全层
+- 根据安全约束选择压力
+- 用于调试距离更新和刹停逻辑
 
-Speaker note:
+备注讲稿：
 
 在完整 MPC 之前，我们先实现了一个更简单的一步安全屏障，用于验证距离更新、速度更新和压力选择逻辑。它不是最终控制器，但对于工程调试非常重要。先把简单闭环跑通，再升级到多步采样规划，可以降低开发风险。
 
-### Slide 27. Closed-Loop MPC Stopping Result
+### 第 27 页：MPC 闭环刹停结果
 
-Visual: `14_mpc_stop_result.png`.
+页面视觉：`14_mpc_stop_result.png`。
 
-On-slide bullets:
+页面内容：
 
-- v0 = 80 km/h
-- x0 = 65 m
-- mu = 0.6
-- d_safe = 2 m
-- final distance = 1.844 m
-- error = 0.156 m
+- 初速度：80 km/h
+- 初始距离：65 m
+- 附着系数：0.6
+- 目标安全距离：2 m
+- 最终距离：1.844 m
+- 距离误差：0.156 m
 
-Speaker note:
+备注讲稿：
 
 这张图展示当前完整闭环刹停结果。初始速度八十公里每小时，障碍物距离六十五米，附着系数零点六，目标安全距离两米。规划器前段使用较温和的压力，后段提高压力，最终车辆在约五点零五秒停止，剩余距离一点八四四米，与目标相差零点一五六米，没有碰撞。
 
-### Slide 28. Honest Boundary of the Current Closed Loop
+### 第 28 页：当前闭环结果的真实边界
 
-Visual: "completed vs next integration" table.
+页面视觉：“已完成”和“下一步集成”对照表。
 
-On-slide bullets:
+页面内容：
 
-- Completed: CarSim dataset and CarSim-GRU training
-- Completed: MPC with mechanism execution environment
-- Not yet claimed: live CarSim-in-the-loop MPC execution
-- Next: send each MPC action to CarSim and replan from CarSim feedback
+- 已完成：CarSim 数据集与 CarSim-GRU 训练
+- 已完成：机理执行环境下的 MPC 闭环
+- 尚未声称：CarSim 在线闭环 MPC
+- 下一步：把每次 MPC 动作发送给 CarSim，并用 CarSim 反馈重规划
 
-Speaker note:
+备注讲稿：
 
 这里需要明确项目口径。我们已经完成了 CarSim 数据采集、工况验证和 CarSim-GRU 训练；也完成了机制环境下的 MPC 闭环刹停。但目前还不能说已经完成 CarSim 在线闭环 MPC，因为刹停演示的执行环境仍是简化机理模型。下一步要做的是把每个实际压力动作发送给 CarSim，再用 CarSim 反馈滚动重规划。
 
-### Slide 29. Engineering Deliverables
+### 第 29 页：工程交付内容
 
-Visual: repository map table.
+页面视觉：仓库结构表。
 
-On-slide bullets:
+页面内容：
 
-- MATLAB scripts and Simulink models
-- CarSim setup and validation tools
-- Python GRU/LSTM training pipeline
-- MPC planner
-- README, documentation, and presentation assets
+- MATLAB 脚本与 Simulink 模型
+- CarSim 配置、验证和数据采集工具
+- Python GRU/LSTM 训练管线
+- MPC 规划器
+- README、工程文档和图表/PPT 资产
 
-Speaker note:
+备注讲稿：
 
 从工程交付角度看，仓库已经包含多个可复现模块。MATLAB 侧有机理模型、CarSim 联调脚本和数据采集脚本；Python 侧有时序数据生成、GRU/LSTM 训练、消融实验和 MPC 规划器；文档侧有中英文 README、CarSim 配置指南、消融实验说明和 PPT 资产生成脚本。这个项目可以继续扩展，而不是一次性脚本。
 
-### Slide 30. Conclusion and Next Steps
+### 第 30 页：总结与下一步
 
-Visual: three-column summary: data, model, planner.
+页面视觉：数据、模型、规划三列表总结。
 
-On-slide bullets:
+页面内容：
 
-- Data: mechanism + CarSim high-fidelity trajectories
-- Model: compact GRU/PINN selected by ablation
-- Planner: sampled MPC achieves safe stopping
-- Next: live CarSim MPC, friction changes, MPPI/CEM, robustness
+- 数据：机理数据 + CarSim 高保真轨迹
+- 模型：通过消融选择轻量 GRU-PINN
+- 规划：采样式 MPC 实现安全刹停
+- 下一步：CarSim 在线 MPC、附着突变、MPPI/CEM、鲁棒性评估
 
-Speaker note:
+备注讲稿：
 
 最后总结。我们已经把项目从简单的机理数据拟合，推进到 CarSim 高保真数据、GRU-PINN 世界模型和采样式 MPC 决策规划。最重要的结论是，世界模型的价值不只是预测精度，而是能否进入规划闭环。下一阶段重点是实现 CarSim 在线执行闭环，引入附着系数突变、噪声和制动热衰退场景，并把随机搜索升级为 MPPI 或 CEM，提高实时性和鲁棒性。谢谢大家。
 
