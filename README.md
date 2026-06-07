@@ -27,7 +27,32 @@ Generate sequence data with Python if MATLAB is not available:
 python python/generate_sequence_dataset.py --out data/brake_sequence_dataset.csv
 ```
 
-When the CarSim S-Function model is ready, use `scripts/carsim_collect_dataset_template.m` as the batch-collection starting point and export the same trajectory CSV schema.
+For real CarSim/Simulink co-simulation, follow:
+
+```text
+docs/carsim_cosimulation_setup.md
+```
+
+After CarSim `Send to Simulink` creates `models/carsim_seed_model.slx`, run:
+
+```matlab
+addpath("src");
+addpath("scripts");
+setup_carsim_cosim("models/carsim_seed_model.slx");
+```
+
+Copy `config/carsim_case_manifest.csv` to the ignored local manifest,
+fill its machine-specific CarSim run paths, and collect data with:
+
+```matlab
+copyfile("config/carsim_case_manifest.csv", ...
+    "config/carsim_case_manifest.local.csv");
+carsim_collect_dataset( ...
+    "config/carsim_case_manifest.local.csv", ...
+    "data/carsim_brake_sequence_dataset.csv", ...
+    ModelPath="models/carsim_brake_cosim.slx", ...
+    RunFileDialogParameter="parameter_name_from_interface_report");
+```
 
 Train an LSTM world model with a lightweight PINN velocity-consistency loss:
 

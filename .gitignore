@@ -10,3 +10,8 @@ results/*_smoke.*
 # MATLAB/Simulink local scratch files
 *.asv
 *.m~
+
+# Machine-specific CarSim run paths and large raw outputs
+config/carsim_case_manifest.local.csv
+data/carsim_raw_outputs.mat
+data/carsim_dataset_metadata.mat

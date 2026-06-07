@@ -22,6 +22,6 @@ info = struct();
 info.fBrake = fBrake;
 info.fMax = fMax;
 info.fActual = fActual;
-info.utilization = fBrake / max(fMax, eps);
+info.utilization = fBrake / max(fMax, eps); %% Avoid division by zero.
 info.slipRisk = info.utilization > p.slipPressureRatio;
 end

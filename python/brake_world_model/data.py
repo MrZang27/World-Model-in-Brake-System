@@ -15,14 +15,15 @@ FEATURE_COLS = ["v_mps", "a_mps2", "pressure_MPa", "mu"]
 TARGET_COLS = ["v_next_mps", "a_next_mps2"]
 
 
-@dataclass
+@dataclass ## A dataclass to hold normalization parameters for features and targets.
+## 类装饰器，用于简化类的定义，自动生成一些特殊方法（如 __init__、__repr__ 等）。在这里，Normalizer 类被定义为一个数据类，包含了特征和目标的均值和标准差。
 class Normalizer:
     x_mean: np.ndarray
     x_std: np.ndarray
     y_mean: np.ndarray
     y_std: np.ndarray
 
-    @classmethod
+    @classmethod ## 类方法，表示该方法属于类而不是实例，可以通过类名直接调用。fit 方法用于根据输入的特征和目标数据计算均值和标准差，并返回一个 Normalizer 实例。
     def fit(cls, x: np.ndarray, y: np.ndarray) -> "Normalizer":
         x_flat = x.reshape(-1, x.shape[-1])
         return cls(
