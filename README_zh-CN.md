@@ -202,6 +202,26 @@ results/safety_planning_scenario.png
   --pinn-weight 0.05
 ```
 
+使用完整 CarSim 数据训练：
+
+```powershell
+& "C:\Users\MrZang\anaconda3\condabin\conda.bat" run -n rl_env `
+  python python/prepare_carsim_training_dataset.py
+
+& "C:\Users\MrZang\anaconda3\condabin\conda.bat" run -n rl_env `
+  python python/train_sequence_world_model.py `
+  --data data/carsim_brake_sequence_training.csv `
+  --out models/world_model_gru_carsim.pt `
+  --metrics-out results/carsim_gru_metrics.csv `
+  --loss-fig results/carsim_gru_training_loss.png `
+  --summary-out results/carsim_gru_training_summary.json `
+  --recurrent gru `
+  --sequence-len 5 `
+  --hidden-size 64 `
+  --epochs 40 `
+  --pinn-weight 0.05
+```
+
 运行八组可复现的 LSTM/GRU 消融实验：
 
 ```powershell

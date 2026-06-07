@@ -1,0 +1,32 @@
+{
+  "data_source": "CarSim",
+  "recurrent": "gru",
+  "sequence_len": 5,
+  "hidden_size": 64,
+  "num_layers": 1,
+  "epochs": 40,
+  "batch_size": 256,
+  "pinn_weight": 0.05,
+  "split_strategy": "trajectory",
+  "seed": 11,
+  "device": "cuda",
+  "parameter_count": 17730,
+  "train_samples": 8231,
+  "val_samples": 2213,
+  "train_trajectories": 96,
+  "val_trajectories": 24,
+  "best_val_loss": 0.0288063430,
+  "elapsed_seconds": 17.1686682,
+  "metrics": {
+    "v_next_mps": {
+      "rmse": 0.11732085,
+      "mae": 0.0918034,
+      "r2": 0.9998056
+    },
+    "a_next_mps2": {
+      "rmse": 0.44932094,
+      "mae": 0.20160562,
+      "r2": 0.9292944
+    }
+  }
+}

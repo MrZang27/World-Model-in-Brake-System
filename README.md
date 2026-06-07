@@ -207,6 +207,26 @@ Train the default single-layer GRU/PINN sequence model:
   --pinn-weight 0.05
 ```
 
+Train on the complete CarSim dataset:
+
+```powershell
+& "C:\Users\MrZang\anaconda3\condabin\conda.bat" run -n rl_env `
+  python python/prepare_carsim_training_dataset.py
+
+& "C:\Users\MrZang\anaconda3\condabin\conda.bat" run -n rl_env `
+  python python/train_sequence_world_model.py `
+  --data data/carsim_brake_sequence_training.csv `
+  --out models/world_model_gru_carsim.pt `
+  --metrics-out results/carsim_gru_metrics.csv `
+  --loss-fig results/carsim_gru_training_loss.png `
+  --summary-out results/carsim_gru_training_summary.json `
+  --recurrent gru `
+  --sequence-len 5 `
+  --hidden-size 64 `
+  --epochs 40 `
+  --pinn-weight 0.05
+```
+
 Run the reproducible eight-configuration LSTM/GRU ablation:
 
 ```powershell

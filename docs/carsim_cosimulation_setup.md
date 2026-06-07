@@ -291,6 +291,15 @@ summary = verify_carsim_run_matrix_smoke();
 mu = 0.2 / 0.8
 ```
 
+批量采集器会自动将 manifest 中的 `.sim` 文件复制到：
+
+```text
+%TEMP%\carsim_world_model_runs\
+```
+
+再传递给 VehicleSim。这样可规避 CarSim 2019 对包含空格或中文字符路径的兼容问题，
+manifest 仍然保留项目目录中的原始规范路径。
+
 ## 7. 先做单工况验证
 
 建议先只保留清单中的一行，然后运行：
@@ -317,12 +326,12 @@ dataset = carsim_collect_dataset( ...
 单工况通过后，恢复完整清单并运行：
 
 ```matlab
-dataset = carsim_collect_dataset( ...
-    "config/carsim_case_manifest.local.csv", ...
-    "data/carsim_brake_sequence_dataset.csv", ...
-    ModelPath="models/carsim_brake_cosim.slx", ...
-    RunFileDialogParameter="SIMFILE");
+summary = run_carsim_full_collection();
 ```
+
+该入口会采集 120 条轨迹，并检查是否覆盖 24 个物理工况、每条轨迹是否包含有效
+压力输入、初速度是否与 manifest 一致。停车附近 CarSim 可能产生很小的负速度，
+采集器会按照本项目的一维速度定义将其截断为 0。
 
 输出格式：
 

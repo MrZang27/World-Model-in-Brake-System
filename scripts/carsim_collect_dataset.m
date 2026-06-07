@@ -71,11 +71,13 @@ for i = 1:height(cases)
             error("CarSim:MissingRunFile", ...
                 "CarSim run file not found for case %d: %s", row.case_id, runFile);
         end
+        vehicleSimRunFile = stageRunFile(runFile);
         % VehicleSim's linked-library SIMFILE mask parameter cannot be
         % reliably overridden with SimulationInput.setBlockParameter.
-        % Update it directly before each sequential simulation instead.
+        % CarSim 2019 also fails on some paths containing spaces or
+        % non-ASCII characters, so use an ASCII temporary copy.
         set_param(cfg.carSimBlockPath, ...
-            char(cfg.runFileDialogParameter), char(runFile));
+            char(cfg.runFileDialogParameter), char(vehicleSimRunFile));
     end
 
     fprintf("CarSim case %d/%d: %.1f km/h, mu=%.2f\n", ...
@@ -184,6 +186,11 @@ v = v(valid);
 a = a(valid);
 pressure = pressure(valid);
 
+% CarSim can produce a small negative longitudinal speed during the final
+% stop transient. The one-dimensional braking world model defines speed as
+% nonnegative, so remove this numerical/rebound artifact in training data.
+v = max(v, 0);
+
 if numel(t) < 2
     error("CarSim:ShortOutput", ...
         "Case %d returned fewer than two valid samples.", caseRow.case_id);
@@ -237,6 +244,20 @@ ts = simOut.get(name);
 if ~isa(ts, "timeseries")
     error("CarSim:OutputType", ...
         "Simulation output '%s' is not a timeseries.", name);
+end
+end
+
+function stagedPath = stageRunFile(runFile)
+runtimeDir = fullfile(tempdir, "carsim_world_model_runs");
+if ~isfolder(runtimeDir)
+    mkdir(runtimeDir);
+end
+[~, fileName, extension] = fileparts(runFile);
+stagedPath = fullfile(runtimeDir, fileName + extension);
+[copied, message] = copyfile(runFile, stagedPath, "f");
+if ~copied
+    error("CarSim:RunFileStagingFailed", ...
+        "Unable to stage CarSim Run file '%s': %s", runFile, message);
 end
 end
 
