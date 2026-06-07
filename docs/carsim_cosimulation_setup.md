@@ -159,6 +159,54 @@ config/carsim_case_manifest.csv
 - `Vx_SM` 与 `Ax_SM` 单位转换
 - 速度、减速度、压力和 `mu` 日志
 
+## 5.1 单工况联合仿真验收
+
+生成联合模型后，先运行一个真实 CarSim 冒烟工况：
+
+```matlab
+report = verify_carsim_cosim_smoke( ...
+    SimFilePath="F:\Carsim\UserData\simfile.sim", ...
+    PressureMPa=2.0, ...
+    StopTimeS=2.5, ...
+    ExpectedInitialSpeedKph=80, ...
+    ExpectedMu=0.85);
+```
+
+当前 `simfile.sim` 对应的 CarSim Run 为 `80 km/h`、路面 `mu=0.85`。如果重新
+生成了其他 Run，应同时修改 `ExpectedInitialSpeedKph` 和 `ExpectedMu`。
+
+验收脚本会检查：
+
+- VehicleSim S-Function 是否能够编译并加载求解器
+- 实际初速度与 CarSim Run 是否一致
+- 制动压力是否真正进入联合模型
+- 速度是否下降、纵向加速度是否为制动方向
+- 输出是否包含 NaN 或无穷值
+- 模型使用的 Simulink 求解器配置
+
+输出文件：
+
+```text
+results/carsim_smoke_trajectory.csv
+results/carsim_smoke_summary.json
+```
+
+冒烟测试通过后，验证正式数据采集器：
+
+```matlab
+summary = verify_carsim_dataset_smoke();
+```
+
+该脚本使用当前 `80 km/h、mu=0.85` 的 CarSim Run 生成一条随机压力轨迹，
+并检查 `0.05 s` 重采样、训练字段、transition 标签、数据来源和有限数值。
+
+输出：
+
+```text
+data/carsim_dataset_smoke.csv
+results/carsim_dataset_smoke_summary.json
+```
+
 ## 6. 配置不同 CarSim Run
 
 打开：
@@ -194,6 +242,54 @@ config/carsim_case_manifest.local.csv
 中填写每个工况对应的 `run_file`。
 
 同一速度和 `mu` 的多个 replicate 可以共享同一个 Run 文件。
+
+### 6.1 必须复制不同的 Run Control 数据集
+
+仅反复修改同一个 CarSim Run，然后复制 `simfile.sim` 并重命名是不够的。
+如果 `.sim` 内的：
+
+```text
+SET_MACRO $(ROOT_FILE_NAME)$ Run_xxx
+```
+
+始终相同，那么全部文件仍会读取同一个
+`Results\Run_xxx\Run_all.par`。后一次运行会覆盖前一次工况。
+
+正确做法是：
+
+1. 在 CarSim Run Control 页面点击 `Duplicate`。
+2. 为每个速度和 `mu` 组合建立独立 Run Control 数据集。
+3. 每个 Run 引用对应的 Procedure 和 Road 数据集。
+4. 分别运行或执行 `Send to Simulink`。
+5. 复制每次生成的 `simfile.sim`，并按 `vXXX_muXXX.sim` 命名。
+6. 确认每个 `.sim` 的 `ROOT_FILE_NAME` 均不同。
+
+全部导出后运行：
+
+```matlab
+report = validate_carsim_run_library();
+```
+
+只有显示 `valid conditions: 24` 和 `result: PASS` 后，才能用于批量采集。
+
+随后自动生成 120 条本机批量清单：
+
+```matlab
+cases = prepare_carsim_batch_manifest();
+```
+
+在运行完整批量采集前，先验证 6 个边界工况：
+
+```matlab
+summary = verify_carsim_run_matrix_smoke();
+```
+
+该测试覆盖：
+
+```text
+20 / 80 / 120 km/h
+mu = 0.2 / 0.8
+```
 
 ## 7. 先做单工况验证
 

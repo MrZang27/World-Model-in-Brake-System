@@ -33,8 +33,15 @@ if ~isfile(cfg.modelPath)
         cfg.modelPath);
 end
 
+wasLoaded = bdIsLoaded(cfg.modelName);
 load_system(cfg.modelPath);
-cleanup = onCleanup(@() closeIfNeeded(cfg.modelName));
+originalRunFile = "";
+if strlength(cfg.runFileDialogParameter) > 0
+    originalRunFile = string(get_param( ...
+        cfg.carSimBlockPath, cfg.runFileDialogParameter));
+end
+cleanup = onCleanup(@() restoreModel( ...
+    cfg, originalRunFile, wasLoaded));
 tables = cell(height(cases), 1);
 rawOutputs = cell(height(cases), 1);
 
@@ -64,8 +71,11 @@ for i = 1:height(cases)
             error("CarSim:MissingRunFile", ...
                 "CarSim run file not found for case %d: %s", row.case_id, runFile);
         end
-        simIn = simIn.setBlockParameter(cfg.carSimBlockPath, ...
-            cfg.runFileDialogParameter, runFile);
+        % VehicleSim's linked-library SIMFILE mask parameter cannot be
+        % reliably overridden with SimulationInput.setBlockParameter.
+        % Update it directly before each sequential simulation instead.
+        set_param(cfg.carSimBlockPath, ...
+            char(cfg.runFileDialogParameter), char(runFile));
     end
 
     fprintf("CarSim case %d/%d: %.1f km/h, mu=%.2f\n", ...
@@ -150,7 +160,7 @@ for k = 2:numel(t)
         cfg.pressureMinMPa), cfg.pressureMaxMPa);
 end
 profile = table(t, pressure, ...
-    "VariableNames", ["time_s", "pressure_MPa"]);
+    VariableNames=["time_s", "pressure_MPa"]);
 end
 
 function tbl = extractTrajectoryTable(simOut, caseRow, cfg, failOnMismatch)
@@ -230,8 +240,19 @@ if ~isa(ts, "timeseries")
 end
 end
 
-function closeIfNeeded(modelName)
-if bdIsLoaded(modelName)
-    close_system(modelName, 0);
+function restoreModel(cfg, originalRunFile, wasLoaded)
+if bdIsLoaded(cfg.modelName)
+    if strlength(cfg.runFileDialogParameter) > 0 && ...
+            strlength(originalRunFile) > 0
+        try
+            set_param(cfg.carSimBlockPath, ...
+                char(cfg.runFileDialogParameter), char(originalRunFile));
+        catch
+            % Preserve the original simulation error during cleanup.
+        end
+    end
+    if ~wasLoaded
+        close_system(cfg.modelName, 0);
+    end
 end
 end

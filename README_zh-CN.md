@@ -411,6 +411,7 @@ calibrate_carsim_brake_gain( ...
 - `results/sequence_world_model_metrics.csv`
 - `results/recurrent_ablation/comparison.csv`
 - `results/recurrent_ablation/report.md`
+- `results/carsim_cosim_validation.md`
 - `results/sequence_training_loss.png`
 - `results/mpc_stop_scenario.csv`
 - `results/mpc_stop_scenario.png`

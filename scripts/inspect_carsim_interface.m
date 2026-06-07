@@ -63,7 +63,7 @@ for i = 1:numel(blocks)
 end
 
 report = cell2table(rows, ...
-    "VariableNames", ["item_type", "name", "value"]);
+    VariableNames=["item_type", "name", "value"]);
 disp(report);
 
 if strlength(outTxt) > 0

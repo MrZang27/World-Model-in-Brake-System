@@ -1,0 +1,18 @@
+{
+  "passed": true,
+  "rowCount": 50,
+  "trajectoryCount": 1,
+  "sampleStepS": 0.050000000000000044,
+  "initialSpeedKph": 80.000000000064,
+  "finalSpeedKph": 35.661440183466816,
+  "maximumPressureMPa": 6.2451480071423173,
+  "minimumAccelerationMps2": -7.7540103569574255,
+  "columnsOk": true,
+  "finiteOutputOk": true,
+  "sampleStepOk": true,
+  "transitionSpeedOk": true,
+  "pressureExcitedOk": true,
+  "speedResponseOk": true,
+  "muOk": true,
+  "sourceOk": true
+}

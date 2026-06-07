@@ -1,0 +1,19 @@
+{
+  "passed": true,
+  "modelPath": "C:\\Users\\MrZang\\OneDrive\\文档\\World Model in Brake System\\models\\carsim_brake_cosim.slx",
+  "simFilePath": "F:\\Carsim\\UserData\\simfile.sim",
+  "sampleCount": 2501,
+  "initialSpeedKph": 80.000000000064,
+  "finalSpeedKph": 58.373054484688915,
+  "speedDropKph": 21.626945515375091,
+  "minimumAccelMps2": -3.2384594134066305,
+  "maximumPressureMPa": 2,
+  "expectedMu": 0.85,
+  "solverType": "Variable-step",
+  "solverName": "ode45",
+  "fixedStep": "0.002",
+  "initialSpeedOk": true,
+  "pressureOk": true,
+  "brakingResponseOk": true,
+  "finiteOutputOk": true
+}
