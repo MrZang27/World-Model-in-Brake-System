@@ -19,7 +19,7 @@ FEATURE_COLS = ["v_mps", "a_mps2", "pressure_MPa", "mu"]
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Run a one-dimensional stopping MPC demo.")
-    parser.add_argument("--model", type=Path, default=Path("models/world_model_lstm.pt"))
+    parser.add_argument("--model", type=Path, default=Path("models/world_model_gru.pt"))
     parser.add_argument("--out-csv", type=Path, default=Path("results/mpc_stop_scenario.csv"))
     parser.add_argument("--out-fig", type=Path, default=Path("results/mpc_stop_scenario.png"))
     parser.add_argument("--initial-speed-kph", type=float, default=80.0)

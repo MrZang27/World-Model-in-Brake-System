@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import argparse
 import csv
+import json
+import time
 from pathlib import Path
 
 import matplotlib
@@ -21,6 +23,7 @@ try:
         Normalizer,
         build_sequences,
         load_or_create_dataframe,
+        split_group_indices,
         split_indices,
     )
     from brake_world_model.models import SequenceWorldModel
@@ -35,19 +38,26 @@ except Exception as exc:  # pragma: no cover - import guard for local environmen
 def parse_args():
     parser = argparse.ArgumentParser(description="Train an LSTM/GRU brake-system world model.")
     parser.add_argument("--data", type=Path, default=Path("data/brake_sequence_dataset.csv"))
-    parser.add_argument("--out", type=Path, default=Path("models/world_model_lstm.pt"))
+    parser.add_argument("--out", type=Path, default=Path("models/world_model_gru.pt"))
     parser.add_argument("--metrics-out", type=Path, default=Path("results/sequence_world_model_metrics.csv"))
     parser.add_argument("--loss-fig", type=Path, default=Path("results/sequence_training_loss.png"))
+    parser.add_argument("--summary-out", type=Path, default=None)
     parser.add_argument("--sequence-len", type=int, default=5)
     parser.add_argument("--hidden-size", type=int, default=64)
     parser.add_argument("--num-layers", type=int, default=1)
-    parser.add_argument("--recurrent", choices=["lstm", "gru"], default="lstm")
+    parser.add_argument("--recurrent", choices=["lstm", "gru"], default="gru")
     parser.add_argument("--epochs", type=int, default=40)
     parser.add_argument("--batch-size", type=int, default=256)
     parser.add_argument("--lr", type=float, default=1e-3)
     parser.add_argument("--pinn-weight", type=float, default=0.05)
     parser.add_argument("--dt", type=float, default=0.05)
     parser.add_argument("--val-fraction", type=float, default=0.2)
+    parser.add_argument(
+        "--split-strategy",
+        choices=["trajectory", "window"],
+        default="trajectory",
+        help="Use trajectory splitting to avoid leakage between overlapping windows.",
+    )
     parser.add_argument("--seed", type=int, default=11)
     parser.add_argument("--synthetic-trajectories", type=int, default=800)
     parser.add_argument("--synthetic-steps", type=int, default=120)
@@ -107,12 +117,20 @@ def plot_loss(path: Path, history: dict[str, list[float]]):
 ## 主函数，执行整个训练流程，包括数据准备、模型训练、评估和结果保存。
 def main():
     args = parse_args() # 解析命令行参数，获取训练配置。
+    start_time = time.perf_counter()
     torch.manual_seed(args.seed) # 设置PyTorch的随机种子，以确保结果可复现。
     np.random.seed(args.seed) # 设置NumPy的随机种子，以确保结果可复现。
 
     df = load_or_create_dataframe(args.data, args.synthetic_trajectories, args.synthetic_steps)# 加载数据集，如果数据文件不存在则生成合成数据。
-    x, y = build_sequences(df, args.sequence_len) # 构建输入特征和目标变量的序列数据，适用于训练RNN模型。
-    train_idx, val_idx = split_indices(len(x), args.val_fraction, args.seed) # 划分训练集和验证集的索引。
+    x, y, trajectory_ids = build_sequences(df, args.sequence_len)
+    if args.split_strategy == "trajectory":
+        train_idx, val_idx = split_group_indices(
+            trajectory_ids, args.val_fraction, args.seed
+        )
+    else:
+        train_idx, val_idx = split_indices(
+            len(x), args.val_fraction, args.seed
+        )
 
     normalizer = Normalizer.fit(x[train_idx], y[train_idx]) # 计算训练集的特征和目标的均值和标准差，用于数据归一化。
     train_ds = BrakeSequenceDataset(x[train_idx], y[train_idx], normalizer) # 创建训练数据集对象，包含原始数据和归一化后的数据。
@@ -130,6 +148,7 @@ def main():
     ).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr) # 创建Adam优化器，用于更新模型参数，学习率由命令行参数指定。
     mse = nn.MSELoss() # 定义均方误差损失函数，用于计算模型预测与真实值之间的误差。
+    parameter_count = sum(parameter.numel() for parameter in model.parameters())
 
     y_mean = torch.tensor(normalizer.y_mean, dtype=torch.float32, device=device) # 将目标变量的均值转换为PyTorch张量，并移动到指定设备（CPU或GPU）。
     y_std = torch.tensor(normalizer.y_std, dtype=torch.float32, device=device) # 将目标变量的标准差转换为PyTorch张量，并移动到指定设备（CPU或GPU）。
@@ -223,12 +242,50 @@ def main():
         "normalizer": normalizer.to_checkpoint(),
         "metrics": metrics,
         "history": history,
+        "split_strategy": args.split_strategy,
+        "parameter_count": parameter_count,
     }
     torch.save(checkpoint, args.out)
+
+    elapsed_seconds = time.perf_counter() - start_time
+    summary = {
+        "recurrent": args.recurrent,
+        "sequence_len": args.sequence_len,
+        "hidden_size": args.hidden_size,
+        "num_layers": args.num_layers,
+        "epochs": args.epochs,
+        "batch_size": args.batch_size,
+        "pinn_weight": args.pinn_weight,
+        "split_strategy": args.split_strategy,
+        "seed": args.seed,
+        "device": str(device),
+        "parameter_count": parameter_count,
+        "train_samples": int(len(train_idx)),
+        "val_samples": int(len(val_idx)),
+        "train_trajectories": int(len(np.unique(trajectory_ids[train_idx]))),
+        "val_trajectories": int(len(np.unique(trajectory_ids[val_idx]))),
+        "best_val_loss": best_val,
+        "elapsed_seconds": elapsed_seconds,
+        "metrics": {
+            key: [float(value) for value in values]
+            for key, values in metrics.items()
+        },
+    }
+    if args.summary_out is not None:
+        args.summary_out.parent.mkdir(parents=True, exist_ok=True)
+        args.summary_out.write_text(
+            json.dumps(summary, indent=2), encoding="utf-8"
+        )
 
     print(f"saved model: {args.out}")
     print(f"saved metrics: {args.metrics_out}")
     print(f"saved loss figure: {args.loss_fig}")
+    if args.summary_out is not None:
+        print(f"saved summary: {args.summary_out}")
+    print(
+        f"model={args.recurrent.upper()} parameters={parameter_count:,} "
+        f"split={args.split_strategy} elapsed={elapsed_seconds:.1f}s"
+    )
 
 
 if __name__ == "__main__":

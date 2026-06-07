@@ -91,13 +91,20 @@ def validate_columns(df: pd.DataFrame):
         raise ValueError(f"Missing required columns: {missing}")
 
 
-def build_sequences(df: pd.DataFrame, sequence_len: int) -> tuple[np.ndarray, np.ndarray]:
+def build_sequences(
+    df: pd.DataFrame,
+    sequence_len: int,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     validate_columns(df)
     x_list: list[np.ndarray] = []
     y_list: list[np.ndarray] = []
+    trajectory_list: list[object] = []
 
     if {"trajectory_id", "step"}.issubset(df.columns):
-        for _, group in df.sort_values(["trajectory_id", "step"]).groupby("trajectory_id", sort=False):
+        for trajectory_id, group in (
+            df.sort_values(["trajectory_id", "step"])
+            .groupby("trajectory_id", sort=False)
+        ):
             g = group.reset_index(drop=True)
             if len(g) < sequence_len:
                 continue
@@ -106,6 +113,7 @@ def build_sequences(df: pd.DataFrame, sequence_len: int) -> tuple[np.ndarray, np
             for end in range(sequence_len - 1, len(g)):
                 x_list.append(features[end - sequence_len + 1 : end + 1])
                 y_list.append(targets[end])
+                trajectory_list.append(trajectory_id)
     else:
         if sequence_len != 1:
             raise ValueError(
@@ -114,11 +122,12 @@ def build_sequences(df: pd.DataFrame, sequence_len: int) -> tuple[np.ndarray, np
             )
         x_list = [row[FEATURE_COLS].to_numpy(dtype=np.float32).reshape(1, -1) for _, row in df.iterrows()]
         y_list = [row[TARGET_COLS].to_numpy(dtype=np.float32) for _, row in df.iterrows()]
+        trajectory_list = list(range(len(x_list)))
 
     if not x_list:
         raise ValueError("No sequences were built. Check trajectory lengths and sequence_len.")
 
-    return np.stack(x_list), np.stack(y_list)
+    return np.stack(x_list), np.stack(y_list), np.asarray(trajectory_list)
 
 
 def split_indices(n: int, val_fraction: float = 0.2, seed: int = 11) -> tuple[np.ndarray, np.ndarray]:
@@ -127,3 +136,17 @@ def split_indices(n: int, val_fraction: float = 0.2, seed: int = 11) -> tuple[np
     n_val = max(1, int(round(val_fraction * n)))
     return idx[n_val:], idx[:n_val]
 
+
+def split_group_indices(
+    groups: np.ndarray,
+    val_fraction: float = 0.2,
+    seed: int = 11,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Split complete trajectories to prevent overlapping-window leakage."""
+    unique_groups = np.unique(groups)
+    rng = np.random.default_rng(seed)
+    shuffled_groups = rng.permutation(unique_groups)
+    n_val_groups = max(1, int(round(val_fraction * len(unique_groups))))
+    val_groups = shuffled_groups[:n_val_groups]
+    val_mask = np.isin(groups, val_groups)
+    return np.flatnonzero(~val_mask), np.flatnonzero(val_mask)

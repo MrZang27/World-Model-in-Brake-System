@@ -12,7 +12,7 @@ class SequenceWorldModel(nn.Module):
         output_size: int = 2,
         num_layers: int = 1,
         dropout: float = 0.0,
-        recurrent: str = "lstm",
+        recurrent: str = "gru",
     ):
         super().__init__()
         recurrent = recurrent.lower()
@@ -37,4 +37,3 @@ class SequenceWorldModel(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         out, _ = self.rnn(x)
         return self.head(out[:, -1, :])
-
