@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -20,6 +21,7 @@ CONFIGURATIONS = [
     {"sequence_len": 50, "hidden_size": 64, "num_layers": 1},
     {"sequence_len": 50, "hidden_size": 128, "num_layers": 2},
 ]
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 
 def parse_args():
@@ -41,6 +43,13 @@ def parse_args():
         default=Path("results/recurrent_ablation"),
     )
     parser.add_argument("--force", action="store_true")
+    parser.add_argument(
+        "--no-promote",
+        action="store_false",
+        dest="promote",
+        help="Do not copy the recommended GRU baseline to the default model paths.",
+    )
+    parser.set_defaults(promote=True)
     return parser.parse_args()
 
 
@@ -63,7 +72,7 @@ def run_experiment(args, recurrent: str, config: dict) -> dict:
         experiment_dir.mkdir(parents=True, exist_ok=True)
         command = [
             sys.executable,
-            "python/train_sequence_world_model.py",
+            str(PROJECT_ROOT / "python" / "train_sequence_world_model.py"),
             "--data",
             str(args.data),
             "--out",
@@ -94,7 +103,7 @@ def run_experiment(args, recurrent: str, config: dict) -> dict:
             str(args.seed),
         ]
         print(f"\n=== {name} ===", flush=True)
-        subprocess.run(command, check=True)
+        subprocess.run(command, check=True, cwd=PROJECT_ROOT)
     else:
         print(f"reuse completed experiment: {name}")
 
@@ -195,6 +204,10 @@ def write_report(results: pd.DataFrame, output_path: Path):
 
 def main():
     args = parse_args()
+    if not args.data.is_absolute():
+        args.data = PROJECT_ROOT / args.data
+    if not args.output_dir.is_absolute():
+        args.output_dir = PROJECT_ROOT / args.output_dir
     args.output_dir.mkdir(parents=True, exist_ok=True)
 
     records = []
@@ -212,6 +225,28 @@ def main():
     results.to_csv(csv_path, index=False)
     plot_comparison(results, figure_path)
     write_report(results, report_path)
+
+    if args.promote:
+        baseline_dir = args.output_dir / "gru_s5_h64_l1"
+        promoted_files = [
+            (baseline_dir / "model.pt", PROJECT_ROOT / "models" / "world_model_gru.pt"),
+            (
+                baseline_dir / "metrics.csv",
+                PROJECT_ROOT / "results" / "sequence_world_model_metrics.csv",
+            ),
+            (
+                baseline_dir / "loss.png",
+                PROJECT_ROOT / "results" / "sequence_training_loss.png",
+            ),
+            (
+                baseline_dir / "summary.json",
+                PROJECT_ROOT / "results" / "sequence_world_model_summary.json",
+            ),
+        ]
+        for source, destination in promoted_files:
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source, destination)
+        print(f"promoted default GRU model: {promoted_files[0][1]}")
 
     print("\nAblation study complete.")
     print(results[

@@ -16,7 +16,7 @@
 | 单步数据 | 随机采样 `[v, P, mu]` | 已完成 |
 | 基线世界模型 | MATLAB MLP 单步预测 | 已完成 |
 | 时序数据 | 连续制动轨迹 | 已完成 |
-| 时序世界模型 | PyTorch LSTM/GRU | 已完成 |
+| 时序世界模型 | PyTorch GRU 默认、LSTM 对照 | 已完成 |
 | 物理信息损失 | 速度积分一致性约束 | 已完成 |
 | 上层规划器 | 一维采样式 MPC | 已完成 |
 | CarSim 接口 | 真实 VehicleSim S-Function 与自动建模脚本 | 联调中 |
@@ -190,7 +190,7 @@ results/safety_planning_scenario.png
   --out data/brake_sequence_dataset.csv
 ```
 
-训练 LSTM/PINN 世界模型：
+训练默认的单层 GRU/PINN 世界模型：
 
 ```powershell
 & "C:\Users\MrZang\anaconda3\condabin\conda.bat" run -n rl_env `
@@ -198,8 +198,18 @@ results/safety_planning_scenario.png
   --data data/brake_sequence_dataset.csv `
   --epochs 40 `
   --sequence-len 5 `
-  --recurrent lstm `
+  --recurrent gru `
   --pinn-weight 0.05
+```
+
+运行八组可复现的 LSTM/GRU 消融实验：
+
+```powershell
+& "C:\Users\MrZang\anaconda3\condabin\conda.bat" run -n rl_env `
+  python python/run_recurrent_ablation.py `
+  --data data/brake_sequence_dataset.csv `
+  --epochs 40 `
+  --force
 ```
 
 运行采样式 MPC：
@@ -207,7 +217,7 @@ results/safety_planning_scenario.png
 ```powershell
 & "C:\Users\MrZang\anaconda3\condabin\conda.bat" run -n rl_env `
   python python/plan_stop_mpc.py `
-  --model models/world_model_lstm.pt
+  --model models/world_model_gru.pt
 ```
 
 如果模型权重不存在或无法加载，MPC 脚本会打印原因，并自动使用机理预测器作为回退，
@@ -399,6 +409,8 @@ calibrate_carsim_brake_gain( ...
 当前仓库中的主要展示产物：
 
 - `results/sequence_world_model_metrics.csv`
+- `results/recurrent_ablation/comparison.csv`
+- `results/recurrent_ablation/report.md`
 - `results/sequence_training_loss.png`
 - `results/mpc_stop_scenario.csv`
 - `results/mpc_stop_scenario.png`
@@ -473,6 +485,6 @@ verify_carsim_prerequisites();
 ## 进一步文档
 
 - [工程实现思路](docs/engineering_implementation_plan.md)
+- [LSTM/GRU 消融实验说明](docs/recurrent_model_ablation.md)
 - [CarSim/Simulink 联合仿真配置指南](docs/carsim_cosimulation_setup.md)
 - [12 分钟三人汇报 PPT](docs/World_Model_Brake_System_12min_3speakers.pptx)
-

@@ -112,21 +112,27 @@ LSTM/GRU 输入过去 `K` 个时间步：
 
 ## 5. 模型升级
 
-### 5.1 LSTM/GRU
+### 5.1 GRU 默认模型与 LSTM 对照
 
 工程实现采用 PyTorch：
 
-- 模型：`SequenceWorldModel`
+- 默认模型：单层 GRU
+- 对照模型：LSTM
 - 输入维度：`4`
 - 输出维度：`2`
 - 默认序列长度：`5`
 - 训练脚本：`python/train_sequence_world_model.py`
+- 消融脚本：`python/run_recurrent_ablation.py`
 
 训练输出：
 
-- `models/world_model_lstm.pt`
+- `models/world_model_gru.pt`
 - `results/sequence_world_model_metrics.csv`
 - `results/sequence_training_loss.png`
+
+当前八组消融实验表明，`GRU(sequence_len=5, hidden_size=64,
+num_layers=1)` 在预测精度、参数量和训练时间之间取得了最佳综合平衡。完整结果见
+`docs/recurrent_model_ablation.md`。
 
 ### 5.2 PINN 物理约束
 

@@ -18,7 +18,7 @@ dynamics and use the learned model to plan a safe and comfortable stop.
 | Transition data | Random `[v, P, mu]` sampling | Complete |
 | Baseline world model | MATLAB MLP, one-step prediction | Complete |
 | Sequence data | Continuous braking trajectories | Complete |
-| Sequence world model | PyTorch LSTM/GRU | Complete |
+| Sequence world model | PyTorch GRU default, LSTM comparison | Complete |
 | Physics-informed loss | Velocity integration consistency | Complete |
 | Upper-level planner | Sampled one-dimensional MPC | Complete |
 | CarSim integration | Real VehicleSim S-Function seed model and setup tools | In integration |
@@ -195,7 +195,7 @@ Generate mechanism-based sequence data when needed:
   --out data/brake_sequence_dataset.csv
 ```
 
-Train the sequence model:
+Train the default single-layer GRU/PINN sequence model:
 
 ```powershell
 & "C:\Users\MrZang\anaconda3\condabin\conda.bat" run -n rl_env `
@@ -203,8 +203,18 @@ Train the sequence model:
   --data data/brake_sequence_dataset.csv `
   --epochs 40 `
   --sequence-len 5 `
-  --recurrent lstm `
+  --recurrent gru `
   --pinn-weight 0.05
+```
+
+Run the reproducible eight-configuration LSTM/GRU ablation:
+
+```powershell
+& "C:\Users\MrZang\anaconda3\condabin\conda.bat" run -n rl_env `
+  python python/run_recurrent_ablation.py `
+  --data data/brake_sequence_dataset.csv `
+  --epochs 40 `
+  --force
 ```
 
 Run sampled MPC:
@@ -212,7 +222,7 @@ Run sampled MPC:
 ```powershell
 & "C:\Users\MrZang\anaconda3\condabin\conda.bat" run -n rl_env `
   python python/plan_stop_mpc.py `
-  --model models/world_model_lstm.pt
+  --model models/world_model_gru.pt
 ```
 
 If the checkpoint cannot be loaded, the MPC script reports the reason and
@@ -410,6 +420,8 @@ calibrate_carsim_brake_gain( ...
 Representative generated artifacts include:
 
 - `results/sequence_world_model_metrics.csv`
+- `results/recurrent_ablation/comparison.csv`
+- `results/recurrent_ablation/report.md`
 - `results/sequence_training_loss.png`
 - `results/mpc_stop_scenario.csv`
 - `results/mpc_stop_scenario.png`
@@ -489,6 +501,6 @@ Repair Pillow in the active Conda environment:
 ## Documentation
 
 - [Engineering implementation plan](docs/engineering_implementation_plan.md)
+- [LSTM/GRU ablation study](docs/recurrent_model_ablation.md)
 - [CarSim/Simulink setup guide](docs/carsim_cosimulation_setup.md)
 - [12-minute, three-speaker presentation](docs/World_Model_Brake_System_12min_3speakers.pptx)
-

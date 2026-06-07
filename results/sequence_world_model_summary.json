@@ -1,0 +1,37 @@
+{
+  "recurrent": "gru",
+  "sequence_len": 5,
+  "hidden_size": 64,
+  "num_layers": 1,
+  "epochs": 40,
+  "batch_size": 256,
+  "pinn_weight": 0.05,
+  "split_strategy": "trajectory",
+  "seed": 11,
+  "device": "cuda",
+  "parameter_count": 17730,
+  "train_samples": 12160,
+  "val_samples": 3040,
+  "train_trajectories": 160,
+  "val_trajectories": 40,
+  "best_val_loss": 0.0004321471,
+  "elapsed_seconds": 23.509073,
+  "metrics": {
+    "mse": [
+      0.0042028036,
+      0.0018582859
+    ],
+    "rmse": [
+      0.0648290366,
+      0.0431078412
+    ],
+    "mae": [
+      0.0442529023,
+      0.0256978888
+    ],
+    "r2": [
+      0.9999473095,
+      0.9995363951
+    ]
+  }
+}
