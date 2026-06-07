@@ -19,11 +19,32 @@
 | 时序世界模型 | PyTorch GRU 默认、LSTM 对照 | 已完成 |
 | 物理信息损失 | 速度积分一致性约束 | 已完成 |
 | 上层规划器 | 一维采样式 MPC | 已完成 |
-| CarSim 接口 | 真实 VehicleSim S-Function 与自动建模脚本 | 联调中 |
-| CarSim 批量数据 | 基于工况清单的联合仿真采集 | 等待填写本机 Run 文件 |
+| CarSim 接口 | 真实 VehicleSim S-Function 联合仿真模型 | 已完成 |
+| CarSim Run 库 | 24 个独立速度/附着系数 Run 根 | 已完成 |
+| CarSim 批量数据 | 120 条压力轨迹清单式采集 | 已完成 |
+| CarSim 时序模型 | 基于 CarSim 数据训练 GRU/PINN | 已完成 |
 
 仓库中已经包含可演示的模型、数据、图表和三人汇报 PPT。CarSim 的 `.sim`
-工况文件与机器和本地数据库相关，因此共享工况清单中不直接写死这些路径。
+工况文件与机器和本地数据库相关，因此本机路径保存在本地清单和验证结果中，
+共享脚本仍然保持可复现。
+
+## 当前已验证结果
+
+| 项目 | 结果 |
+|---|---:|
+| 机理单步数据集 | 30,000 行 |
+| 机理时序数据集 | 16,000 行 |
+| CarSim Run 根 | 24/24 有效 |
+| CarSim 压力轨迹 | 120 条 |
+| CarSim 原始状态转移 | 13,070 行 |
+| CarSim 训练数据 | 10,924 行 |
+| CarSim 单工况冒烟 | PASS，80 km/h，mu=0.85，2 MPa |
+| CarSim 矩阵冒烟 | PASS，6/6 个边界工况 |
+| 推荐时序模型 | GRU，序列长度 5，隐藏层 64，单层 |
+| 推荐模型参数量 | 17,730 |
+| 机理 GRU 验证 | v RMSE 0.0648 m/s，a RMSE 0.0431 m/s^2 |
+| CarSim-GRU 验证 | v RMSE 0.1173 m/s，a RMSE 0.4493 m/s^2 |
+| MPC 刹停演示 | 80 km/h，最终距离误差 0.156 m |
 
 ## 系统架构
 
@@ -105,7 +126,13 @@ J = w_distance * (x_stop - d_safe)^2
 | `scripts/verify_carsim_prerequisites.m` | 检查 Simulink、`vs_sf` 和种子模型 |
 | `scripts/setup_carsim_cosim.m` | 自动生成项目联合仿真模型 |
 | `scripts/carsim_collect_dataset.m` | 按工况清单批量采集 CarSim 数据 |
+| `scripts/validate_carsim_run_library.m` | 验证本机 CarSim `.sim` Run 文件库 |
+| `scripts/prepare_carsim_batch_manifest.m` | 生成本机 24 工况/120 轨迹清单 |
+| `scripts/verify_carsim_run_matrix_smoke.m` | 冒烟测试代表性 CarSim 工况矩阵 |
+| `scripts/run_carsim_full_collection.m` | 采集完整 CarSim 数据集 |
 | `python/train_sequence_world_model.py` | 训练带 PINN 损失的 LSTM/GRU |
+| `python/run_recurrent_ablation.py` | 运行 LSTM/GRU 消融实验 |
+| `python/prepare_carsim_training_dataset.py` | 准备 CarSim 训练数据切分 |
 | `python/plan_stop_mpc.py` | 运行一维采样式 MPC 刹停示例 |
 
 ## 环境要求
@@ -248,6 +275,19 @@ results/safety_planning_scenario.png
 更详细的界面配置与排错说明见：
 [docs/carsim_cosimulation_setup.md](docs/carsim_cosimulation_setup.md)。
 
+当前本机 CarSim 流程已经在 CarSim 2019.0 与 MATLAB R2024b 下完成验证：
+
+```text
+24 个速度/mu Run 根 -> 120 条压力轨迹 -> 13,070 条原始状态转移
+```
+
+完整数据集位于：
+
+```text
+data/carsim_brake_sequence_dataset.csv
+data/carsim_brake_sequence_training.csv
+```
+
 ### 1. 配置 CarSim Run
 
 建立平直道路制动工况，参考参数如下：
@@ -323,15 +363,15 @@ config/carsim_case_manifest.csv
 当前 CarSim 2019.0 的接口报告显示运行文件参数名为 `SIMFILE`。生成脚本会把 `.sim`
 文件写成绝对路径，避免 MATLAB 切换工作目录后 VehicleSim 找不到求解器 DLL。
 
-### 4. 准备批量工况清单
+### 4. 验证本机 Run 库并准备批量工况清单
 
-默认清单覆盖：
+本机 Run 库覆盖：
 
 ```text
 6 个初速度 x 4 个 mu x 5 条随机压力曲线 = 120 个工况
 ```
 
-先复制一份本机清单：
+如果在另一台机器上重建 Run 库，先复制一份本机清单：
 
 ```matlab
 copyfile( ...
@@ -342,22 +382,40 @@ copyfile( ...
 在本机清单的 `run_file` 列中填写每个 CarSim 速度和路面条件对应的 `.sim` 文件。
 相同速度与 `mu` 下的多个 replicate 可以共用同一个 Run 文件。
 
-### 5. 先做单工况冒烟测试
+当前项目可以直接验证已经完成的本机 Run 库：
+
+```matlab
+report = validate_carsim_run_library();
+cases = prepare_carsim_batch_manifest();
+summary = verify_carsim_run_matrix_smoke();
+```
+
+最新矩阵冒烟测试已经通过 6/6 个代表性边界工况：
+
+```text
+20 km/h， mu=0.2 和 0.8
+80 km/h， mu=0.2 和 0.8
+120 km/h，mu=0.2 和 0.8
+```
+
+### 5. 采集 CarSim 数据集
 
 先只在本机清单中保留一条有效记录：
 
 ```matlab
-dataset = carsim_collect_dataset( ...
-    "config/carsim_case_manifest.local.csv", ...
-    "data/carsim_smoke_dataset.csv", ...
-    ModelPath="models/carsim_brake_cosim.slx", ...
-    RunFileDialogParameter="SIMFILE");
+summary = verify_carsim_dataset_smoke();
 ```
 
 采集器会检查输出缺失、NaN、timeseries 类型，以及清单初速度与 CarSim 实际初速度
 是否一致。
 
 单工况通过后恢复完整清单：
+
+```matlab
+dataset = run_carsim_full_collection();
+```
+
+也可以直接调用采集器：
 
 ```matlab
 dataset = carsim_collect_dataset( ...
@@ -368,12 +426,24 @@ dataset = carsim_collect_dataset( ...
     SaveRawOutputs=false);
 ```
 
-随后直接使用 CarSim 数据训练：
+随后准备训练数据并直接训练 CarSim-GRU：
 
 ```powershell
 & "C:\Users\MrZang\anaconda3\condabin\conda.bat" run -n rl_env `
+  python python/prepare_carsim_training_dataset.py
+
+& "C:\Users\MrZang\anaconda3\condabin\conda.bat" run -n rl_env `
   python python/train_sequence_world_model.py `
-  --data data/carsim_brake_sequence_dataset.csv
+  --data data/carsim_brake_sequence_training.csv `
+  --out models/world_model_gru_carsim.pt `
+  --metrics-out results/carsim_gru_metrics.csv `
+  --loss-fig results/carsim_gru_training_loss.png `
+  --summary-out results/carsim_gru_training_summary.json `
+  --recurrent gru `
+  --sequence-len 5 `
+  --hidden-size 64 `
+  --epochs 40 `
+  --pinn-weight 0.05
 ```
 
 ## 数据集字段
@@ -430,14 +500,23 @@ calibrate_carsim_brake_gain( ...
 
 - `results/sequence_world_model_metrics.csv`
 - `results/recurrent_ablation/comparison.csv`
-- `results/recurrent_ablation/report.md`
+- `docs/recurrent_model_ablation.md`
 - `results/carsim_cosim_validation.md`
+- `results/carsim_run_library_validation.csv`
+- `results/carsim_matrix_smoke_summary.csv`
+- `results/carsim_full_dataset_summary.csv`
+- `results/carsim_gru_metrics.csv`
+- `results/carsim_gru_training_summary.json`
 - `results/sequence_training_loss.png`
+- `results/carsim_gru_training_loss.png`
 - `results/mpc_stop_scenario.csv`
 - `results/mpc_stop_scenario.png`
 - `docs/World_Model_Brake_System_12min_3speakers.pptx`
+- `scripts/update_presentation_15min.py`
 
 ![采样式 MPC 刹停结果](results/mpc_stop_scenario.png)
+
+PPT 文件名保留早期交付命名以便兼容；更新脚本和备注内容面向约 15 分钟三人期末汇报。
 
 ## 常见问题
 
@@ -499,13 +578,14 @@ verify_carsim_prerequisites();
 - 当前规划问题是一维直线场景，障碍物默认静止。
 - MATLAB 基线机理环境经过有意简化，不能代替完整整车模型。
 - 当前通过不同 CarSim Run/道路数据集表达不同 `mu`，尚未做统一的运行时路面摩擦输入。
-- MPC 示例使用学习模型进行候选轨迹预测，但当前执行环境仍为简化机理模型；下一步是
-  将每次实际动作直接发送给 CarSim，并用 CarSim 反馈进行滚动重规划。
-- 在完成高保真批量采集前，必须为本机工况清单填写真实的 CarSim `.sim` 文件路径。
+- 完整 CarSim 数据集与 CarSim-GRU 模型已经完成，但当前展示的 MPC 刹停演示仍由简化
+  机理环境执行。下一步是将每次实际动作直接发送给 CarSim，并用 CarSim 反馈进行滚动重规划。
+- CarSim `.sim` 路径与机器和数据库相关；移动仓库或重建 CarSim 工况后，需要重新运行
+  Run 库验证。
 
 ## 进一步文档
 
 - [工程实现思路](docs/engineering_implementation_plan.md)
 - [LSTM/GRU 消融实验说明](docs/recurrent_model_ablation.md)
 - [CarSim/Simulink 联合仿真配置指南](docs/carsim_cosimulation_setup.md)
-- [12 分钟三人汇报 PPT](docs/World_Model_Brake_System_12min_3speakers.pptx)
+- [三人汇报 PPT](docs/World_Model_Brake_System_12min_3speakers.pptx)

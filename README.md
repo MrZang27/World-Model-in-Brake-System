@@ -21,12 +21,33 @@ dynamics and use the learned model to plan a safe and comfortable stop.
 | Sequence world model | PyTorch GRU default, LSTM comparison | Complete |
 | Physics-informed loss | Velocity integration consistency | Complete |
 | Upper-level planner | Sampled one-dimensional MPC | Complete |
-| CarSim integration | Real VehicleSim S-Function seed model and setup tools | In integration |
-| CarSim batch dataset | Manifest-driven CarSim/Simulink collection | Ready for run files |
+| CarSim integration | Real VehicleSim S-Function co-simulation model | Complete |
+| CarSim Run library | 24 independent speed/adhesion Run roots | Complete |
+| CarSim batch dataset | 120 trajectory manifest-driven collection | Complete |
+| CarSim sequence model | GRU/PINN trained on CarSim transitions | Complete |
 
 The repository contains generated demonstration models, datasets, plots, and a
-three-speaker presentation. Machine-specific CarSim run files are intentionally
-not embedded in the shared manifest.
+three-speaker presentation. Machine-specific CarSim run files are kept in the
+local manifest and validation artifacts, while the shared workflow remains
+reproducible from the scripts.
+
+## Current Verified Results
+
+| Item | Result |
+|---|---:|
+| Mechanism one-step dataset | 30,000 rows |
+| Mechanism sequence dataset | 16,000 rows |
+| CarSim Run roots | 24/24 valid |
+| CarSim pressure trajectories | 120 |
+| Raw CarSim transitions | 13,070 rows |
+| CarSim training transitions | 10,924 rows |
+| CarSim smoke case | PASS, 80 km/h, mu=0.85, 2 MPa |
+| CarSim matrix smoke test | PASS, 6/6 boundary cases |
+| Recommended recurrent model | GRU, sequence length 5, hidden size 64, 1 layer |
+| Recommended model size | 17,730 parameters |
+| Mechanism GRU validation | v RMSE 0.0648 m/s, a RMSE 0.0431 m/s^2 |
+| CarSim-GRU validation | v RMSE 0.1173 m/s, a RMSE 0.4493 m/s^2 |
+| MPC stopping demo | 80 km/h, final distance error 0.156 m |
 
 ## System Architecture
 
@@ -110,7 +131,13 @@ Important entry points:
 | `scripts/verify_carsim_prerequisites.m` | Check Simulink, `vs_sf`, and seed model |
 | `scripts/setup_carsim_cosim.m` | Build the project CarSim co-simulation model |
 | `scripts/carsim_collect_dataset.m` | Run manifest-driven CarSim data collection |
+| `scripts/validate_carsim_run_library.m` | Validate local CarSim `.sim` Run files |
+| `scripts/prepare_carsim_batch_manifest.m` | Build the local 24-condition/120-trajectory manifest |
+| `scripts/verify_carsim_run_matrix_smoke.m` | Smoke-test representative CarSim Run-matrix cases |
+| `scripts/run_carsim_full_collection.m` | Collect the full CarSim dataset |
 | `python/train_sequence_world_model.py` | Train LSTM/GRU with PINN loss |
+| `python/run_recurrent_ablation.py` | Run the LSTM/GRU ablation study |
+| `python/prepare_carsim_training_dataset.py` | Prepare the CarSim training split |
 | `python/plan_stop_mpc.py` | Run the sampled stopping MPC demonstration |
 
 ## Requirements
@@ -254,6 +281,20 @@ executable.
 See the detailed guide:
 [docs/carsim_cosimulation_setup.md](docs/carsim_cosimulation_setup.md).
 
+The current local CarSim workflow has been validated with CarSim 2019.0 and
+MATLAB R2024b:
+
+```text
+24 speed/mu Run roots -> 120 pressure trajectories -> 13,070 raw transitions
+```
+
+The complete dataset is available at:
+
+```text
+data/carsim_brake_sequence_dataset.csv
+data/carsim_brake_sequence_training.csv
+```
+
 ### 1. Configure the CarSim Run
 
 Use a straight-road braking Run with approximately the following values:
@@ -331,15 +372,16 @@ For CarSim 2019.0, the inspected S-Function parameter is `SIMFILE`. The generate
 project model stores an absolute `.sim` path, avoiding failures after MATLAB
 changes its working directory.
 
-### 4. Prepare the batch manifest
+### 4. Validate the local Run library and prepare the batch manifest
 
-The generated manifest covers:
+The generated local Run library covers:
 
 ```text
 6 initial speeds x 4 mu values x 5 pressure-profile replicates = 120 cases
 ```
 
-Copy it before adding local machine paths:
+If you are recreating the run library on another machine, copy the template
+before adding local machine paths:
 
 ```matlab
 copyfile( ...
@@ -351,22 +393,40 @@ Fill the `run_file` column with the `.sim` descriptor associated with each
 CarSim speed/road condition. Replicates with the same speed and `mu` may share
 one run file.
 
-### 5. Collect a smoke-test dataset
+The current project can validate the completed local library directly:
+
+```matlab
+report = validate_carsim_run_library();
+cases = prepare_carsim_batch_manifest();
+summary = verify_carsim_run_matrix_smoke();
+```
+
+The latest matrix smoke test passed 6/6 representative boundary cases:
+
+```text
+20 km/h,  mu=0.2 and 0.8
+80 km/h,  mu=0.2 and 0.8
+120 km/h, mu=0.2 and 0.8
+```
+
+### 5. Collect CarSim datasets
 
 Keep one valid row in the local manifest first:
 
 ```matlab
-dataset = carsim_collect_dataset( ...
-    "config/carsim_case_manifest.local.csv", ...
-    "data/carsim_smoke_dataset.csv", ...
-    ModelPath="models/carsim_brake_cosim.slx", ...
-    RunFileDialogParameter="SIMFILE");
+summary = verify_carsim_dataset_smoke();
 ```
 
 The collector validates missing outputs, NaNs, timeseries types, and mismatch
 between manifest speed and actual initial CarSim speed.
 
 After one case succeeds, restore the full manifest:
+
+```matlab
+dataset = run_carsim_full_collection();
+```
+
+Or call the collector directly:
 
 ```matlab
 dataset = carsim_collect_dataset( ...
@@ -377,12 +437,24 @@ dataset = carsim_collect_dataset( ...
     SaveRawOutputs=false);
 ```
 
-Then train directly on the CarSim dataset:
+Then prepare and train directly on the CarSim dataset:
 
 ```powershell
 & "C:\Users\MrZang\anaconda3\condabin\conda.bat" run -n rl_env `
+  python python/prepare_carsim_training_dataset.py
+
+& "C:\Users\MrZang\anaconda3\condabin\conda.bat" run -n rl_env `
   python python/train_sequence_world_model.py `
-  --data data/carsim_brake_sequence_dataset.csv
+  --data data/carsim_brake_sequence_training.csv `
+  --out models/world_model_gru_carsim.pt `
+  --metrics-out results/carsim_gru_metrics.csv `
+  --loss-fig results/carsim_gru_training_loss.png `
+  --summary-out results/carsim_gru_training_summary.json `
+  --recurrent gru `
+  --sequence-len 5 `
+  --hidden-size 64 `
+  --epochs 40 `
+  --pinn-weight 0.05
 ```
 
 ## Dataset Schema
@@ -441,14 +513,25 @@ Representative generated artifacts include:
 
 - `results/sequence_world_model_metrics.csv`
 - `results/recurrent_ablation/comparison.csv`
-- `results/recurrent_ablation/report.md`
+- `docs/recurrent_model_ablation.md`
 - `results/carsim_cosim_validation.md`
+- `results/carsim_run_library_validation.csv`
+- `results/carsim_matrix_smoke_summary.csv`
+- `results/carsim_full_dataset_summary.csv`
+- `results/carsim_gru_metrics.csv`
+- `results/carsim_gru_training_summary.json`
 - `results/sequence_training_loss.png`
+- `results/carsim_gru_training_loss.png`
 - `results/mpc_stop_scenario.csv`
 - `results/mpc_stop_scenario.png`
 - `docs/World_Model_Brake_System_12min_3speakers.pptx`
+- `scripts/update_presentation_15min.py`
 
 ![Sampled MPC stopping result](results/mpc_stop_scenario.png)
+
+The presentation file name is kept for compatibility with earlier deliverables;
+the updated script and speaker notes target a roughly 15-minute, three-speaker
+final presentation.
 
 ## Troubleshooting
 
@@ -511,17 +594,18 @@ Repair Pillow in the active Conda environment:
 - The current planning task is one-dimensional and assumes a stationary
   obstacle.
 - The baseline mechanism environment is intentionally simplified.
-- `mu` is currently represented through separate CarSim Run/road conditions,
-  not a universal runtime friction import.
-- The MPC demonstration predicts with the learned model but executes against
-  the mechanism environment; replacing execution with live CarSim feedback is
-  the next closed-loop integration step.
-- The manifest must reference locally generated CarSim `.sim` files before
-  high-fidelity batch collection can run.
+- `mu` is represented through separate CarSim Run/road conditions, not a
+  universal runtime friction import.
+- The complete CarSim dataset and CarSim-GRU model are available, but the
+  displayed MPC stopping demo still executes against the mechanism
+  environment. Replacing that execution layer with live CarSim feedback is the
+  next closed-loop integration step.
+- CarSim `.sim` paths are machine-specific. Re-run the Run-library validation
+  after moving the repository or rebuilding the CarSim database.
 
 ## Documentation
 
 - [Engineering implementation plan](docs/engineering_implementation_plan.md)
 - [LSTM/GRU ablation study](docs/recurrent_model_ablation.md)
 - [CarSim/Simulink setup guide](docs/carsim_cosimulation_setup.md)
-- [12-minute, three-speaker presentation](docs/World_Model_Brake_System_12min_3speakers.pptx)
+- [Three-speaker presentation deck](docs/World_Model_Brake_System_12min_3speakers.pptx)
