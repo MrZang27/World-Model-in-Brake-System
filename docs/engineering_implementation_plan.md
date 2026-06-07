@@ -77,7 +77,16 @@ LSTM/GRU 输入过去 `K` 个时间步：
    - 路面附着系数 `mu`
 4. Simulink 外层脚本负责写入压力曲线、初速度和路面工况，并将仿真结果导出为 CSV。
 
-工程中已提供批量采集模板：`scripts/carsim_collect_dataset_template.m`。你们只需要把模板中的 logged signal 名称映射到实际 CarSim/Simulink 信号，即可导出与 LSTM 脚本兼容的序列 CSV。
+工程中已提供完整的 CarSim 联调工具链：
+
+- `scripts/inspect_carsim_interface.m`
+- `scripts/create_carsim_brake_cosim_model.m`
+- `scripts/setup_carsim_cosim.m`
+- `scripts/generate_carsim_case_manifest.m`
+- `scripts/carsim_collect_dataset.m`
+- `scripts/calibrate_carsim_brake_gain.m`
+
+由于 VehicleSim S-Function 的 Import/Export 和求解器参数与具体 CarSim Run 绑定，必须先由 CarSim `Send to Simulink` 生成 `models/carsim_seed_model.slx`，再由项目脚本自动封装。完整操作见 `docs/carsim_cosimulation_setup.md`。
 
 ### 4.2 采样范围
 

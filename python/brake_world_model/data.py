@@ -15,14 +15,15 @@ FEATURE_COLS = ["v_mps", "a_mps2", "pressure_MPa", "mu"]
 TARGET_COLS = ["v_next_mps", "a_next_mps2"]
 
 
-@dataclass
+@dataclass ## A dataclass to hold normalization parameters for features and targets.
+## 类装饰器，用于简化类的定义，自动生成一些特殊方法（如 __init__、__repr__ 等）。在这里，Normalizer 类被定义为一个数据类，包含了特征和目标的均值和标准差。
 class Normalizer:
     x_mean: np.ndarray
     x_std: np.ndarray
     y_mean: np.ndarray
     y_std: np.ndarray
 
-    @classmethod
+    @classmethod ## 类方法，表示该方法属于类而不是实例，可以通过类名直接调用。fit 方法用于根据输入的特征和目标数据计算均值和标准差，并返回一个 Normalizer 实例。
     def fit(cls, x: np.ndarray, y: np.ndarray) -> "Normalizer":
         x_flat = x.reshape(-1, x.shape[-1])
         return cls(
@@ -90,13 +91,20 @@ def validate_columns(df: pd.DataFrame):
         raise ValueError(f"Missing required columns: {missing}")
 
 
-def build_sequences(df: pd.DataFrame, sequence_len: int) -> tuple[np.ndarray, np.ndarray]:
+def build_sequences(
+    df: pd.DataFrame,
+    sequence_len: int,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     validate_columns(df)
     x_list: list[np.ndarray] = []
     y_list: list[np.ndarray] = []
+    trajectory_list: list[object] = []
 
     if {"trajectory_id", "step"}.issubset(df.columns):
-        for _, group in df.sort_values(["trajectory_id", "step"]).groupby("trajectory_id", sort=False):
+        for trajectory_id, group in (
+            df.sort_values(["trajectory_id", "step"])
+            .groupby("trajectory_id", sort=False)
+        ):
             g = group.reset_index(drop=True)
             if len(g) < sequence_len:
                 continue
@@ -105,6 +113,7 @@ def build_sequences(df: pd.DataFrame, sequence_len: int) -> tuple[np.ndarray, np
             for end in range(sequence_len - 1, len(g)):
                 x_list.append(features[end - sequence_len + 1 : end + 1])
                 y_list.append(targets[end])
+                trajectory_list.append(trajectory_id)
     else:
         if sequence_len != 1:
             raise ValueError(
@@ -113,11 +122,12 @@ def build_sequences(df: pd.DataFrame, sequence_len: int) -> tuple[np.ndarray, np
             )
         x_list = [row[FEATURE_COLS].to_numpy(dtype=np.float32).reshape(1, -1) for _, row in df.iterrows()]
         y_list = [row[TARGET_COLS].to_numpy(dtype=np.float32) for _, row in df.iterrows()]
+        trajectory_list = list(range(len(x_list)))
 
     if not x_list:
         raise ValueError("No sequences were built. Check trajectory lengths and sequence_len.")
 
-    return np.stack(x_list), np.stack(y_list)
+    return np.stack(x_list), np.stack(y_list), np.asarray(trajectory_list)
 
 
 def split_indices(n: int, val_fraction: float = 0.2, seed: int = 11) -> tuple[np.ndarray, np.ndarray]:
@@ -126,3 +136,17 @@ def split_indices(n: int, val_fraction: float = 0.2, seed: int = 11) -> tuple[np
     n_val = max(1, int(round(val_fraction * n)))
     return idx[n_val:], idx[:n_val]
 
+
+def split_group_indices(
+    groups: np.ndarray,
+    val_fraction: float = 0.2,
+    seed: int = 11,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Split complete trajectories to prevent overlapping-window leakage."""
+    unique_groups = np.unique(groups)
+    rng = np.random.default_rng(seed)
+    shuffled_groups = rng.permutation(unique_groups)
+    n_val_groups = max(1, int(round(val_fraction * len(unique_groups))))
+    val_groups = shuffled_groups[:n_val_groups]
+    val_mask = np.isin(groups, val_groups)
+    return np.flatnonzero(~val_mask), np.flatnonzero(val_mask)

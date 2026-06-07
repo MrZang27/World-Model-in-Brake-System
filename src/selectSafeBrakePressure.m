@@ -11,10 +11,10 @@ pred = predictWorldModel(model, X);
 
 fBrake = p.kBrake * candidates(:);
 fMax = mu * p.m * p.g;
-utilization = fBrake ./ max(fMax, eps);
+utilization = fBrake ./ max(fMax, eps); % Avoid division by zero.
 decel = -pred(:, 2);
 
-safe = utilization <= p.slipPressureRatio & decel <= min(mu * p.g, p.maxComfortDecel) + 0.25;
+safe = utilization <= p.slipPressureRatio & decel <= min(mu * p.g, p.maxComfortDecel) + 0.25; % Add a small buffer to account for model inaccuracies.
 speedError = abs(pred(:, 1) - targetSpeed);
 score = speedError + 20 * (~safe) + 0.02 * candidates(:);
 

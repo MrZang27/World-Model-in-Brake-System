@@ -1,0 +1,6 @@
+item_type	name	value
+BLOCK	carsim_seed_model/CarSim S-Function	
+FunctionName	vs_sf	
+MaskType	Vehicle math model library	
+DialogParameter	SIMFILE	simfile.sim
+MaskParameter	SIMFILE	simfile.sim
