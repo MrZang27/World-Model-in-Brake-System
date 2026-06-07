@@ -41,9 +41,7 @@ cfg.carSimStepS = 0.001;
 cfg.defaultStopTimeS = 6.0;
 cfg.initialSpeedToleranceKph = 5.0;
 
-% Set this after running inspect_carsim_interface if a manifest supplies a
-% different CarSim .sim/run file for each condition. Examples vary across
-% CarSim versions, so it is intentionally not guessed.
-cfg.runFileDialogParameter = "";
+% The inspected CarSim 2019 VehicleSim block exposes the run descriptor
+% through this dialog parameter.
+cfg.runFileDialogParameter = "SIMFILE";
 end
-

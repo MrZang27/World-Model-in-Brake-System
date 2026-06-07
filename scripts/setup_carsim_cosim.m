@@ -3,6 +3,7 @@ function info = setup_carsim_cosim(seedModelPath, options)
 
 arguments
     seedModelPath (1,1) string = fullfile("models", "carsim_seed_model.slx")
+    options.SimFilePath (1,1) string = ""
     options.Overwrite (1,1) logical = false
 end
 
@@ -22,6 +23,7 @@ reportPath = fullfile(projectRoot, "results", "carsim_interface_report.tsv");
 report = inspect_carsim_interface(seedModelPath, reportPath);
 info = create_carsim_brake_cosim_model(seedModelPath, ...
     OutputModelPath=fullfile(projectRoot, "models", "carsim_brake_cosim.slx"), ...
+    SimFilePath=options.SimFilePath, ...
     Overwrite=options.Overwrite);
 manifest = generate_carsim_case_manifest( ...
     fullfile(projectRoot, "config", "carsim_case_manifest.csv"));

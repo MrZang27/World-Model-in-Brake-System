@@ -150,7 +150,7 @@ for k = 2:numel(t)
         cfg.pressureMinMPa), cfg.pressureMaxMPa);
 end
 profile = table(t, pressure, ...
-    "VariableNames", {"time_s", "pressure_MPa"});
+    "VariableNames", ["time_s", "pressure_MPa"]);
 end
 
 function tbl = extractTrajectoryTable(simOut, caseRow, cfg, failOnMismatch)

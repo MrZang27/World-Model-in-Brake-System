@@ -131,8 +131,16 @@ models/carsim_seed_model.slx
 ```matlab
 addpath("src");
 addpath("scripts");
-setup_carsim_cosim("models/carsim_seed_model.slx");
+verify_carsim_prerequisites();
+setup_carsim_cosim( ...
+    "models/carsim_seed_model.slx", ...
+    SimFilePath="F:\Carsim\UserData\simfile.sim", ...
+    Overwrite=true);
 ```
+
+`SimFilePath` 是本机 CarSim 生成的 `.sim` 描述文件路径。脚本会尝试从
+种子模型目录、MATLAB 当前目录和 CarSim 安装目录下的 `UserData` 自动解析，
+但在正式工程中建议显式传入绝对路径。
 
 脚本会生成：
 
@@ -161,7 +169,14 @@ results/carsim_interface_report.tsv
 
 在 `DialogParameter` 或 `MaskParameter` 中找到控制 CarSim `.sim`/Run 文件的参数名称。
 
-不同 CarSim 版本的名称可能不同，因此项目不硬编码猜测。
+当前 CarSim 2019.0 接口报告中的参数名称为：
+
+```text
+SIMFILE
+```
+
+项目默认使用该名称。其他 CarSim 版本如果显示不同名称，应在调用采集器时通过
+`RunFileDialogParameter` 显式传入接口报告中的名称。
 
 先复制模板：
 
@@ -189,7 +204,7 @@ dataset = carsim_collect_dataset( ...
     "config/carsim_case_manifest.local.csv", ...
     "data/carsim_smoke_dataset.csv", ...
     ModelPath="models/carsim_brake_cosim.slx", ...
-    RunFileDialogParameter="在接口报告中找到的参数名");
+    RunFileDialogParameter="SIMFILE");
 ```
 
 采集器会检查：
@@ -210,7 +225,7 @@ dataset = carsim_collect_dataset( ...
     "config/carsim_case_manifest.local.csv", ...
     "data/carsim_brake_sequence_dataset.csv", ...
     ModelPath="models/carsim_brake_cosim.slx", ...
-    RunFileDialogParameter="接口报告中的参数名");
+    RunFileDialogParameter="SIMFILE");
 ```
 
 输出格式：

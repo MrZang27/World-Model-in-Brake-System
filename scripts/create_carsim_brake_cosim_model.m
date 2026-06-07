@@ -12,6 +12,7 @@ arguments
     seedModelPath (1,1) string
     options.OutputModelPath (1,1) string = ""
     options.CarSimBlock (1,1) string = ""
+    options.SimFilePath (1,1) string = ""
     options.Overwrite (1,1) logical = false
 end
 
@@ -50,6 +51,7 @@ if strlength(options.CarSimBlock) > 0
 else
     sourceBlock = findCarSimBlock(seedModel);
 end
+simFilePath = resolveSimFilePath(sourceBlock, seedModelPath, options.SimFilePath);
 
 if bdIsLoaded(targetModel)
     close_system(targetModel, 0);
@@ -78,6 +80,7 @@ copyModelWorkspace(seedModel, targetModel);
 
 carSimBlock = targetModel + "/CarSimVehicle";
 add_block(sourceBlock, carSimBlock, "Position", [485 205 685 335]);
+set_param(carSimBlock, "SIMFILE", simFilePath);
 
 add_block("simulink/Sources/From Workspace", targetModel + "/PressureProfile", ...
     "VariableName", "case_pressure_profile", ...
@@ -148,11 +151,69 @@ info = struct();
 info.modelPath = string(outputModelPath);
 info.carSimBlockPath = string(carSimBlock);
 info.sourceBlockPath = string(sourceBlock);
+info.simFilePath = simFilePath;
 info.importVariables = cfg.importVariables;
 info.exportVariables = cfg.exportVariables;
 fprintf("Generated CarSim co-simulation model: %s\n", outputModelPath);
+fprintf("CarSim sim file: %s\n", simFilePath);
 fprintf("Imports must be: %s\n", strjoin(cfg.importVariables, ", "));
 fprintf("Exports must be: %s\n", strjoin(cfg.exportVariables, ", "));
+end
+
+function simFilePath = resolveSimFilePath(sourceBlock, seedModelPath, requestedPath)
+if strlength(requestedPath) > 0
+    rawPath = requestedPath;
+else
+    try
+        rawPath = string(get_param(sourceBlock, "SIMFILE"));
+    catch
+        error("CarSim:SimFileParameterMissing", ...
+            "The VehicleSim S-Function does not expose a SIMFILE parameter.");
+    end
+end
+
+rawPath = strip(rawPath);
+if strlength(rawPath) == 0
+    error("CarSim:MissingSimFile", ...
+        "The VehicleSim S-Function SIMFILE parameter is empty.");
+end
+
+candidates = strings(0, 1);
+if isAbsolutePath(rawPath)
+    candidates(end + 1, 1) = rawPath;
+else
+    seedDir = string(fileparts(seedModelPath));
+    candidates(end + 1, 1) = fullfile(seedDir, rawPath);
+    candidates(end + 1, 1) = fullfile(string(pwd), rawPath);
+
+    vsSfPath = string(which("vs_sf"));
+    if strlength(vsSfPath) > 0
+        solverBindingDir = string(fileparts(vsSfPath));
+        carSimRoot = string(fileparts(fileparts(fileparts(solverBindingDir))));
+        candidates(end + 1, 1) = fullfile(carSimRoot, "UserData", rawPath);
+    end
+end
+
+candidates = unique(candidates, "stable");
+for i = 1:numel(candidates)
+    if isfile(candidates(i))
+        simFilePath = candidates(i);
+        if ~isAbsolutePath(simFilePath)
+            simFilePath = fullfile(string(pwd), simFilePath);
+        end
+        return;
+    end
+end
+
+error("CarSim:MissingSimFile", ...
+    "Unable to resolve CarSim SIMFILE '%s'. Checked:\n%s", ...
+    rawPath, strjoin(candidates, newline));
+end
+
+function tf = isAbsolutePath(pathValue)
+pathValue = char(pathValue);
+tf = ~isempty(regexp(pathValue, "^[A-Za-z]:[\\/]", "once")) || ...
+    startsWith(pathValue, "\\") || startsWith(pathValue, "/");
 end
 
 function cleanup = installTemporaryWorkspaceVariables(cfg)
